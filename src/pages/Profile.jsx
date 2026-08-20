@@ -298,21 +298,21 @@ const styles = {
   inputWrapper: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.01)',
-    border: '1px solid rgba(255,255,255,0.05)',
+    backgroundColor: 'var(--bg-primary)',
+    border: '1px solid var(--border-color)',
     borderRadius: '8px',
     padding: '0 12px',
     height: '42px',
   },
   inputIcon: {
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     marginRight: '10px',
   },
   input: {
     flexGrow: 1,
     height: '100%',
     fontSize: '0.85rem',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     outline: 'none',
   },
   saveBtn: {

@@ -141,8 +141,8 @@ export default function AuthPage({ onAuthSuccess }) {
         {/* Left Side: Brand & Visuals */}
         <div style={styles.visualCol}>
           <div style={styles.brandLogo}>
-            <Award size={26} color="#8b5cf6" />
-            <h2 style={styles.brandName}>EduAnalytics</h2>
+            <Award size={26} color="var(--primary)" />
+            <h2 style={styles.brandName}>EduInsight</h2>
           </div>
           
           <div style={styles.infoTextContainer}>
@@ -352,15 +352,15 @@ const styles = {
   authContainer: {
     minHeight: '100vh',
     width: '100vw',
-    backgroundColor: '#0b0f19',
+    backgroundColor: 'var(--bg-primary)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '1.5rem',
     backgroundAttachment: 'fixed',
     backgroundImage: 
-      'radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),' +
-      'radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%)',
+      'radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),' +
+      'radial-gradient(at 100% 100%, rgba(2, 132, 199, 0.08) 0px, transparent 50%)',
   },
   authCard: {
     display: 'grid',
@@ -372,8 +372,8 @@ const styles = {
     minHeight: '560px',
   },
   visualCol: {
-    backgroundColor: 'rgba(15, 20, 34, 0.4)',
-    borderRight: '1px solid rgba(255,255,255,0.03)',
+    backgroundColor: '#0F172A',
+    borderRight: '1px solid var(--border-color)',
     padding: '2.5rem',
     display: 'flex',
     flexDirection: 'column',
@@ -387,7 +387,7 @@ const styles = {
   brandName: {
     fontSize: '1.35rem',
     fontWeight: '700',
-    color: '#f3f4f6',
+    color: '#ffffff',
     fontFamily: "'Outfit', sans-serif",
   },
   infoTextContainer: {
@@ -397,12 +397,12 @@ const styles = {
     fontSize: '2rem',
     fontWeight: '700',
     lineHeight: '1.25',
-    color: '#f3f4f6',
+    color: '#ffffff',
     fontFamily: "'Outfit', sans-serif",
   },
   infoDesc: {
     fontSize: '0.875rem',
-    color: '#9ca3af',
+    color: '#94a3b8',
     marginTop: '1rem',
     lineHeight: '1.5',
   },
@@ -413,9 +413,9 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    border: '1px solid rgba(16, 185, 129, 0.15)',
-    color: '#10b981',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    border: '1px solid rgba(56, 189, 248, 0.2)',
+    color: '#38bdf8',
     padding: '6px 12px',
     borderRadius: '20px',
     fontSize: '0.75rem',
@@ -428,8 +428,8 @@ const styles = {
   },
   tabHeader: {
     display: 'flex',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.04)',
+    backgroundColor: 'var(--bg-secondary)',
+    border: '1px solid var(--border-color)',
     borderRadius: '10px',
     padding: '4px',
     marginBottom: '1.5rem',
@@ -440,14 +440,14 @@ const styles = {
     borderRadius: '8px',
     fontSize: '0.85rem',
     fontWeight: '600',
-    color: '#9ca3af',
+    color: 'var(--text-secondary)',
     textAlign: 'center',
     transition: 'all 0.2s ease',
   },
   tabBtnActive: {
-    backgroundColor: '#8b5cf6',
-    color: '#fff',
-    boxShadow: '0 0 10px rgba(139,92,246,0.3)',
+    backgroundColor: 'var(--primary)',
+    color: '#ffffff',
+    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)',
   },
   form: {
     display: 'flex',
@@ -461,13 +461,13 @@ const styles = {
   },
   formTitle: {
     fontSize: '1.25rem',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     fontWeight: '600',
     fontFamily: "'Outfit', sans-serif",
   },
   formSubtitle: {
     fontSize: '0.75rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     marginTop: '2px',
     lineHeight: '1.4',
   },
@@ -478,32 +478,32 @@ const styles = {
   },
   fieldLabel: {
     fontSize: '0.75rem',
-    color: '#9ca3af',
+    color: 'var(--text-secondary)',
     fontWeight: '600',
   },
   inputWrapper: {
     display: 'flex',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.01)',
-    border: '1px solid rgba(255,255,255,0.05)',
+    backgroundColor: '#ffffff',
+    border: '1px solid var(--border-color)',
     borderRadius: '8px',
     padding: '0 12px',
     height: '42px',
-    transition: 'border-color 0.15s ease',
+    transition: 'all 0.15s ease',
   },
   inputIcon: {
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     marginRight: '10px',
   },
   input: {
     flexGrow: 1,
     height: '100%',
     fontSize: '0.85rem',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     outline: 'none',
   },
   eyeBtn: {
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     marginLeft: '6px',
   },
   submitBtn: {
@@ -514,18 +514,18 @@ const styles = {
     width: '100%',
     padding: '12px',
     borderRadius: '8px',
-    backgroundColor: '#8b5cf6',
-    color: '#fff',
+    backgroundColor: 'var(--primary)',
+    color: '#ffffff',
     fontSize: '0.9rem',
     fontWeight: '600',
     marginTop: '12px',
-    boxShadow: '0 0 15px rgba(139,92,246,0.3)',
+    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)',
     transition: 'all 0.2s ease',
   },
   errorBox: {
-    backgroundColor: 'rgba(244, 63, 94, 0.08)',
-    border: '1px solid rgba(244, 63, 94, 0.15)',
-    color: '#f43f5e',
+    backgroundColor: 'var(--danger-bg)',
+    border: '1px solid var(--danger-border)',
+    color: 'var(--danger)',
     padding: '8px 12px',
     borderRadius: '8px',
     fontSize: '0.75rem',
@@ -535,9 +535,9 @@ const styles = {
     lineHeight: '1.4',
   },
   successBox: {
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    border: '1px solid rgba(16, 185, 129, 0.15)',
-    color: '#10b981',
+    backgroundColor: 'var(--success-bg)',
+    border: '1px solid var(--success-border)',
+    color: 'var(--success)',
     padding: '8px 12px',
     borderRadius: '8px',
     fontSize: '0.75rem',

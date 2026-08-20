@@ -17,7 +17,7 @@ export default function Sidebar({ activePage, setActivePage, studentName, onLogo
           <Award size={22} color="var(--primary)" />
         </div>
         <div>
-          <h1 style={styles.brandTitle}>EduAnalytics</h1>
+          <h1 style={styles.brandTitle}>EduInsight</h1>
           <span style={styles.brandSubtitle}>Student Workspace</span>
         </div>
       </div>

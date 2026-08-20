@@ -1,36 +1,35 @@
-/* Design Tokens & Theme Configuration */
+/* Design Tokens & Theme Configuration (White & Sky Blue Theme Only) */
 :root {
-  /* Default/Dark Theme Tokens */
-  --bg-primary: #0b0f19;
-  --bg-secondary: #0f1422;
-  --bg-card: rgba(17, 24, 39, 0.6);
-  --bg-card-hover: rgba(23, 31, 50, 0.85);
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
   
-  --border-color: rgba(14, 165, 233, 0.12);
-  --border-color-hover: rgba(14, 165, 233, 0.25);
-  --border-glow: rgba(14, 165, 233, 0.2);
+  --border-color: rgba(14, 165, 233, 0.18);
+  --border-color-hover: rgba(14, 165, 233, 0.35);
+  --border-glow: rgba(14, 165, 233, 0.15);
 
-  --primary: #0ea5e9; /* Sky Blue accent */
-  --primary-rgb: 14, 165, 233;
-  --secondary: #38bdf8; 
-  --secondary-rgb: 56, 189, 248;
-  --accent: #0ea5e9;
+  --primary: #0284c7; /* Sky-600 */
+  --primary-rgb: 2, 132, 199;
+  --secondary: #0ea5e9; /* Sky-500 */
+  --secondary-rgb: 14, 165, 233;
+  --accent: #0369a1; 
   
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #090d16;     /* Darker black slate for titles */
+  --text-secondary: #1e293b;   /* Slate-800 for content text */
+  --text-muted: #475569;       /* Slate-600 for subtitles/muted labels */
   
-  --success: #10b981; 
-  --success-bg: rgba(16, 185, 129, 0.1);
-  --success-border: rgba(16, 185, 129, 0.2);
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.08);
+  --success-border: rgba(16, 185, 129, 0.15);
   
-  --warning: #f59e0b; 
-  --warning-bg: rgba(245, 158, 11, 0.1);
-  --warning-border: rgba(245, 158, 11, 0.2);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.08);
+  --warning-border: rgba(245, 158, 11, 0.15);
   
-  --danger: #f43f5e; 
-  --danger-bg: rgba(244, 63, 94, 0.1);
-  --danger-border: rgba(244, 63, 94, 0.2);
+  --danger: #f43f5e;
+  --danger-bg: rgba(244, 63, 94, 0.08);
+  --danger-border: rgba(244, 63, 94, 0.15);
   
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', sans-serif;
@@ -47,39 +46,6 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 0 20px rgba(14, 165, 233, 0.1);
-}
-
-body.light-theme {
-  /* Light Theme Override: White and Sky */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
-  
-  --border-color: rgba(14, 165, 233, 0.18);
-  --border-color-hover: rgba(14, 165, 233, 0.35);
-  --border-glow: rgba(14, 165, 233, 0.15);
-
-  --primary: #0284c7; /* Sky-600 */
-  --primary-rgb: 2, 132, 199;
-  --secondary: #0ea5e9; /* Sky-500 */
-  --secondary-rgb: 14, 165, 233;
-  --accent: #0369a1; 
-  
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  
-  --success-bg: rgba(16, 185, 129, 0.08);
-  --success-border: rgba(16, 185, 129, 0.15);
-  
-  --warning-bg: rgba(245, 158, 11, 0.08);
-  --warning-border: rgba(245, 158, 11, 0.15);
-  
-  --danger-bg: rgba(244, 63, 94, 0.08);
-  --danger-border: rgba(244, 63, 94, 0.15);
-  
   --shadow-glow: 0 0 15px rgba(14, 165, 233, 0.06);
 }
 
@@ -99,17 +65,13 @@ body {
   line-height: 1.5;
   transition: background-color var(--transition-normal), color var(--transition-normal);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.06) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.06) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(125, 211, 252, 0.03) 0px, transparent 50%);
-  background-attachment: fixed;
-}
-
-body.light-theme {
-  background-image: 
     radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.04) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.04) 0px, transparent 50%),
     radial-gradient(at 50% 100%, rgba(125, 211, 252, 0.02) 0px, transparent 50%);
+  background-attachment: fixed;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {

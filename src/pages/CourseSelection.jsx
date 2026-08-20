@@ -14,16 +14,7 @@ export default function CourseSelection({ student, onEnroll }) {
       active: true,
       description: "An introductory to intermediate course covering syntax, type conversions, loop algorithms, list matrices, custom functions, dictionaries, and Object-Oriented structures."
     },
-    {
-      id: "jv-101",
-      title: "Java Masterclass",
-      instructor: "Prof. Sarah Jenkins",
-      duration: "10 Weeks",
-      modulesCount: 10,
-      rating: "4.7",
-      active: false,
-      description: "Explore robust Object-Oriented blueprints, interfaces, thread concurrency, streams, exception handling, and JDBC database connectors."
-    },
+
     {
       id: "db-101",
       title: "Database Management Systems (DBMS)",
@@ -52,7 +43,7 @@ export default function CourseSelection({ student, onEnroll }) {
       {/* Header Banner */}
       <div style={styles.header}>
         <div style={styles.avatarMiniWrapper}>
-          <Award size={20} color="#8b5cf6" />
+          <Award size={20} color="var(--primary)" />
           <span style={styles.userLabel}>Logged in as: <strong>{student.name}</strong></span>
         </div>
         <h1 style={styles.title}>Academic Course Catalog</h1>
@@ -87,21 +78,10 @@ export default function CourseSelection({ student, onEnroll }) {
             </div>
 
             <h3 style={styles.courseTitle}>{course.title}</h3>
-            <span style={styles.instructor}>Instructor: <strong>{course.instructor}</strong></span>
             
             <p style={styles.courseDesc}>{course.description}</p>
             
-            {/* Meta row */}
-            <div style={styles.metaRow}>
-              <div style={styles.metaItem}>
-                <BookOpen size={14} color="#6b7280" />
-                <span>{course.modulesCount} Modules</span>
-              </div>
-              <div style={styles.metaItem}>
-                <Clock size={14} color="#6b7280" />
-                <span>{course.duration}</span>
-              </div>
-            </div>
+
 
             <div style={styles.cardFooter}>
               {course.active ? (
@@ -130,14 +110,14 @@ const styles = {
   container: {
     minHeight: '100vh',
     width: '100vw',
-    backgroundColor: '#0b0f19',
+    backgroundColor: 'var(--bg-primary)',
     padding: '3rem 2rem',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     backgroundAttachment: 'fixed',
     backgroundImage: 
-      'radial-gradient(at 50% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%)',
+      'radial-gradient(at 50% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%)',
   },
   header: {
     textAlign: 'center',
@@ -148,26 +128,26 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.05)',
+    backgroundColor: 'var(--bg-secondary)',
+    border: '1px solid var(--border-color)',
     padding: '4px 12px',
     borderRadius: '20px',
     marginBottom: '1rem',
   },
   userLabel: {
     fontSize: '0.75rem',
-    color: '#9ca3af',
+    color: 'var(--text-secondary)',
   },
   title: {
     fontSize: '2.25rem',
     fontWeight: '800',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     fontFamily: "'Outfit', sans-serif",
     letterSpacing: '-0.02em',
   },
   subtitle: {
     fontSize: '0.9rem',
-    color: '#9ca3af',
+    color: 'var(--text-muted)',
     marginTop: '8px',
     lineHeight: '1.5',
   },
@@ -187,9 +167,9 @@ const styles = {
     transition: 'all 0.3s ease',
   },
   activeCard: {
-    border: '1px solid rgba(139, 92, 246, 0.2)',
-    backgroundColor: 'rgba(17, 24, 39, 0.7)',
-    boxShadow: '0 0 20px rgba(139, 92, 246, 0.05)',
+    border: '1px solid var(--border-color-hover)',
+    backgroundColor: 'var(--bg-card)',
+    boxShadow: 'var(--shadow-md)',
   },
   cardHeader: {
     display: 'flex',
@@ -217,20 +197,20 @@ const styles = {
   },
   courseTitle: {
     fontSize: '1.25rem',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     fontWeight: '700',
     marginTop: '1.25rem',
     fontFamily: "'Outfit', sans-serif",
   },
   instructor: {
     fontSize: '0.75rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     marginTop: '2px',
     display: 'block',
   },
   courseDesc: {
     fontSize: '0.8rem',
-    color: '#9ca3af',
+    color: 'var(--text-secondary)',
     marginTop: '10px',
     lineHeight: '1.45',
     flexGrow: 1,
@@ -240,7 +220,7 @@ const styles = {
     gap: '16px',
     marginTop: '1.25rem',
     marginBottom: '1.5rem',
-    borderTop: '1px solid rgba(255,255,255,0.03)',
+    borderTop: '1px solid var(--border-color)',
     paddingTop: '12px',
   },
   metaItem: {
@@ -248,7 +228,7 @@ const styles = {
     alignItems: 'center',
     gap: '6px',
     fontSize: '0.75rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
   },
   cardFooter: {
     marginTop: 'auto',
@@ -261,11 +241,11 @@ const styles = {
     width: '100%',
     padding: '10px',
     borderRadius: '8px',
-    backgroundColor: '#8b5cf6',
-    color: '#fff',
+    backgroundColor: 'var(--primary)',
+    color: '#ffffff',
     fontSize: '0.85rem',
     fontWeight: '600',
-    boxShadow: '0 0 15px rgba(139,92,246,0.3)',
+    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)',
     transition: 'all 0.2s ease',
   },
   lockedBox: {
@@ -274,10 +254,10 @@ const styles = {
     justifyContent: 'center',
     gap: '8px',
     padding: '10px',
-    border: '1px solid rgba(255,255,255,0.03)',
-    backgroundColor: 'rgba(255,255,255,0.01)',
+    border: '1px solid var(--border-color)',
+    backgroundColor: 'var(--bg-secondary)',
     borderRadius: '8px',
     fontSize: '0.8rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
   },
 };

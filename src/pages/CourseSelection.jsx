@@ -1,9 +1,9 @@
 import React from 'react';
 import { Award, BookOpen, Clock, Lock, ArrowRight, Star } from 'lucide-react';
 
-export default function CourseSelection({ student, onEnroll }) {
+export default function CourseSelection({ student, onEnroll, onSelectCourse }) {
   
-  const coursesCatalog = [
+  const baseCatalog = [
     {
       id: "py-101",
       title: "Python Programming",
@@ -14,7 +14,6 @@ export default function CourseSelection({ student, onEnroll }) {
       active: true,
       description: "An introductory to intermediate course covering syntax, type conversions, loop algorithms, list matrices, custom functions, dictionaries, and Object-Oriented structures."
     },
-
     {
       id: "db-101",
       title: "Database Management Systems (DBMS)",
@@ -22,7 +21,7 @@ export default function CourseSelection({ student, onEnroll }) {
       duration: "8 Weeks",
       modulesCount: 8,
       rating: "4.9",
-      active: false,
+      active: true,
       description: "Master relational schema designs, table keys, normalization rules (1NF, 2NF, 3NF), index optimization, and SQL aggregations."
     },
     {
@@ -32,10 +31,39 @@ export default function CourseSelection({ student, onEnroll }) {
       duration: "12 Weeks",
       modulesCount: 12,
       rating: "4.6",
-      active: false,
+      active: true,
       description: "Build clean layouts using modern CSS Flexbox/Grid, and create highly responsive single-page web applications using React.js."
     }
   ];
+
+  const [coursesCatalog, setCoursesCatalog] = React.useState(() => {
+    try {
+      const localCourses = JSON.parse(localStorage.getItem('lap_courses_list') || '[]');
+      // Filter ONLY Published courses (Drafts are strictly hidden from students per Rule 15)
+      const published = localCourses
+        .filter(c => c.status === 'Published')
+        .map(c => ({
+          id: c.course_id,
+          title: c.course_name || c.title,
+          instructor: c.instructor_name || 'Faculty Member',
+          duration: c.duration || '8 Weeks',
+          modulesCount: c.total_modules || c.modules?.length || (c.topics ? Math.ceil(c.topics.length / 3) : 6),
+          rating: '4.9',
+          active: true,
+          description: c.description
+        }));
+      
+      const combined = [...baseCatalog];
+      published.forEach(p => {
+        if (!combined.some(c => c.id === p.id)) {
+          combined.push(p);
+        }
+      });
+      return combined;
+    } catch (e) {
+      return baseCatalog;
+    }
+  });
 
   return (
     <div style={styles.container}>
@@ -52,54 +80,58 @@ export default function CourseSelection({ student, onEnroll }) {
 
       {/* Catalog Grid */}
       <div style={styles.catalogGrid}>
-        {coursesCatalog.map((course) => (
-          <div 
-            key={course.id} 
-            className="glass-card animate-fade-in" 
-            style={{
-              ...styles.courseCard,
-              ...(course.active ? styles.activeCard : {})
-            }}
-          >
-            <div style={styles.cardHeader}>
-              <span style={{
-                ...styles.badge,
-                backgroundColor: course.active ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                color: course.active ? '#10b981' : '#6b7280',
-                border: `1px solid ${course.active ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)'}`,
-              }}>
-                {course.active ? "Open Enrollment" : "Locked / Coming Soon"}
-              </span>
+        {coursesCatalog.map((course) => {
+          const isEnrolled = student.enrolledCourses && student.enrolledCourses.includes(course.id);
+          
+          return (
+            <div 
+              key={course.id} 
+              className="glass-card animate-fade-in" 
+              style={{
+                ...styles.courseCard,
+                ...(isEnrolled ? styles.activeCard : {})
+              }}
+            >
+              <div style={styles.cardHeader}>
+                <span style={{
+                  ...styles.badge,
+                  backgroundColor: isEnrolled ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 132, 199, 0.1)',
+                  color: isEnrolled ? '#10b981' : 'var(--primary)',
+                  border: `1px solid ${isEnrolled ? 'rgba(16, 185, 129, 0.2)' : 'var(--primary-light)'}`,
+                }}>
+                  {isEnrolled ? "Enrolled" : "Open Enrollment"}
+                </span>
+                
+                <div style={styles.ratingBox}>
+                  <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                  <span style={styles.ratingText}>{course.rating}</span>
+                </div>
+              </div>
+
+              <h3 style={styles.courseTitle}>{course.title}</h3>
               
-              <div style={styles.ratingBox}>
-                <Star size={12} fill="#f59e0b" color="#f59e0b" />
-                <span style={styles.ratingText}>{course.rating}</span>
+              <p style={styles.courseDesc}>{course.description}</p>
+              
+              <div style={styles.cardFooter}>
+                {isEnrolled ? (
+                  <button 
+                    onClick={() => onSelectCourse(course.id)} 
+                    style={{...styles.enrollBtn, backgroundColor: '#10b981', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'}}
+                  >
+                    Enter Course Workspace <ArrowRight size={16} />
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => onEnroll(course.id)} 
+                    style={styles.enrollBtn}
+                  >
+                    Enroll & Begin Learning <ArrowRight size={16} />
+                  </button>
+                )}
               </div>
             </div>
-
-            <h3 style={styles.courseTitle}>{course.title}</h3>
-            
-            <p style={styles.courseDesc}>{course.description}</p>
-            
-
-
-            <div style={styles.cardFooter}>
-              {course.active ? (
-                <button 
-                  onClick={() => onEnroll(course.id)} 
-                  style={styles.enrollBtn}
-                >
-                  Enroll & Begin Learning <ArrowRight size={16} />
-                </button>
-              ) : (
-                <div style={styles.lockedBox}>
-                  <Lock size={14} color="#6b7280" />
-                  <span>Prerequisite Syllabus Required</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
     </div>

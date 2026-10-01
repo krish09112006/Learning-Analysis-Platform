@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronLeft, FileText, Download, CheckCircle, HelpCircle, Upload, AlertCircle, RefreshCw, X, BookOpen, Settings, LogOut, User, Folder, FolderOpen, ArrowRight, ArrowLeft } from 'lucide-react';
+import quizService from '../services/quizService';
+import assignmentService from '../services/assignmentService';
 import { SYLLABUS_CATEGORIES } from '../mockData';
 
 export default function Courses({ 
@@ -24,10 +26,23 @@ export default function Courses({
   // Settings dropdown state
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
 
+  // Dynamically compute syllabus categories / modules from course
+  const availableCategories = React.useMemo(() => {
+    if (course?.modules && course.modules.length > 0) {
+      return course.modules.map(m => m.title || m.module_name || m.name);
+    }
+    const topicCats = Array.from(new Set((course?.topics || []).map(t => t.category))).filter(Boolean);
+    if (topicCats.length > 0) return topicCats;
+    return SYLLABUS_CATEGORIES;
+  }, [course]);
+
   // Folder Collapsed/Expanded states
   const [expandedCategories, setExpandedCategories] = useState(() => {
     const states = {};
-    SYLLABUS_CATEGORIES.forEach((cat, index) => {
+    const cats = course?.modules?.map(m => m.title || m.module_name || m.name) || 
+      Array.from(new Set((course?.topics || []).map(t => t.category))).filter(Boolean);
+    const finalCats = cats.length > 0 ? cats : SYLLABUS_CATEGORIES;
+    finalCats.forEach((cat, index) => {
       // By default, expand only the first module and collapse the rest to keep it neat
       states[cat] = index === 0;
     });
@@ -45,87 +60,169 @@ export default function Courses({
   // Find active topic object
   const activeTopic = course.topics.find(t => t.id === selectedTopicId) || course.topics[0] || null;
 
+  const [topicAssignments, setTopicAssignments] = React.useState([]);
+
+  React.useEffect(() => {
+    if (activeTopic && student) {
+      assignmentService.getAssignments(course.id, activeTopic.id)
+        .then(res => setTopicAssignments(res.filter(a => a.status === 'Published')))
+        .catch(err => console.error("Failed to load assignments", err));
+    }
+  }, [activeTopic, student, course.id]);
+
   // Trigger Material Download
   const handleDownload = (material, topicName) => {
     logActivity(`Downloaded material: "${material.title}" for topic ${topicName}`);
     if (!activeTopic) return;
 
-    // Compile comprehensive text notes formatting
-    let fileContent = `==================================================\n`;
-    fileContent += `🎓 STUDY NOTES: ${activeTopic.name.toUpperCase()}\n`;
-    fileContent += `==================================================\n\n`;
+    // We will build the PDF stream directly!
+    let stream = 'BT\n';
     
-    fileContent += `📁 Module: ${activeTopic.category}\n`;
-    fileContent += `⚡ Difficulty: ${activeTopic.difficulty}\n`;
-    fileContent += `⏱️ Estimated Learning Time: ${activeTopic.estimatedTime}\n`;
-    fileContent += `🔑 Prerequisites: ${activeTopic.prerequisites}\n\n`;
+    // Draw Top Banner (solid sky-blue `#0284C7`)
+    let graphics = '0.02 0.52 0.82 rg\n40 2400 532 60 re f\n';
     
-    fileContent += `--------------------------------------------------\n`;
-    fileContent += `🎯 LEARNING OBJECTIVES\n`;
-    fileContent += `--------------------------------------------------\n`;
-    if (activeTopic.learningObjectives) {
-      activeTopic.learningObjectives.forEach((obj, idx) => {
-        fileContent += `${idx + 1}. ${obj}\n`;
+    // Brand Text (white on banner)
+    stream += '1 1 1 rg\n/F2 9 Tf\n50 2438 Td\n(EduInsight Study Reference Library) Tj\n';
+    stream += '0 -22 Td\n/F3 16 Tf\n(COURSE: PYTHON PROGRAMMING) Tj\n';
+    
+    // Reset cursor coordinate offset
+    stream += 'ET\nBT\n';
+    
+    // Title (Navy blue `#0F172A`)
+    stream += '0.06 0.09 0.16 rg\n/F3 20 Tf\n45 2330 Td\n';
+    stream += `(${activeTopic.name.toUpperCase()}) Tj\n`;
+    stream += 'ET\n';
+    
+    // Divider line below Title
+    graphics += '0.88 0.95 0.99 RG\n1 w\n45 2315 m 572 2315 l S\n';
+    
+    // Next cursor position
+    let y = 2270;
+    
+    // Helper to print styled sections
+    const drawSectionHeader = (title) => {
+      // Draw a small blue bullet rectangle
+      graphics += `0.02 0.52 0.82 rg\n45 ${y} 6 12 re f\n`;
+      // Print Header Text
+      stream += `BT\n0.06 0.09 0.16 rg\n/F3 11 Tf\n58 ${y + 2} Td\n(${title}) Tj\nET\n`;
+      y -= 25;
+    };
+    
+    const drawTextList = (items, isNumbered = false) => {
+      stream += 'BT\n0.12 0.16 0.23 rg\n/F2 9.5 Tf\n12 TL\n';
+      stream += `55 ${y} Td\n`;
+      items.forEach((item, index) => {
+        const text = isNumbered ? `${index + 1}. ${item}` : `* ${item}`;
+        const escaped = text.replace(/[()]/g, '\\$&');
+        stream += `(${escaped}) Tj T*\n`;
+        y -= 12;
       });
-    }
-    fileContent += `\n`;
+      stream += 'ET\n';
+      y -= 15;
+    };
     
-    fileContent += `--------------------------------------------------\n`;
-    fileContent += `📖 CONCEPT EXPLANATION\n`;
-    fileContent += `--------------------------------------------------\n`;
-    fileContent += `${activeTopic.conceptExplanation}\n\n`;
+    const drawParagraph = (text) => {
+      // Split paragraph by newlines
+      const lines = text.split('\n');
+      stream += 'BT\n0.12 0.16 0.23 rg\n/F2 9.5 Tf\n14 TL\n';
+      stream += `55 ${y} Td\n`;
+      lines.forEach(line => {
+        const escaped = line.replace(/[()]/g, '\\$&');
+        stream += `(${escaped}) Tj T*\n`;
+        y -= 14;
+      });
+      stream += 'ET\n';
+      y -= 15;
+    };
     
-    if (activeTopic.syntax) {
-      fileContent += `--------------------------------------------------\n`;
-      fileContent += `💻 SYNTAX REFERENCE\n`;
-      fileContent += `--------------------------------------------------\n`;
-      fileContent += `${activeTopic.syntax}\n\n`;
-    }
-    
-    if (activeTopic.example) {
-      fileContent += `--------------------------------------------------\n`;
-      fileContent += `📝 CODE EXAMPLE\n`;
-      fileContent += `--------------------------------------------------\n`;
-      fileContent += `${activeTopic.example}\n\n`;
-      if (activeTopic.output) {
-        fileContent += `[Expected Console Output]:\n${activeTopic.output}\n\n`;
+    const drawCodeBlock = (syntax, example, output) => {
+      // Determine how tall the box needs to be
+      const codeLines = [];
+      if (syntax) codeLines.push(...syntax.split('\n'));
+      if (example) codeLines.push(...example.split('\n'));
+      if (output) {
+        codeLines.push('[Expected Output]:');
+        codeLines.push(...output.split('\n'));
       }
-    }
-    
-    if (activeTopic.keyPoints) {
-      fileContent += `--------------------------------------------------\n`;
-      fileContent += `📌 KEY TAKEAWAYS\n`;
-      fileContent += `--------------------------------------------------\n`;
-      activeTopic.keyPoints.forEach(pt => {
-        fileContent += `* ${pt}\n`;
+      
+      const boxHeight = (codeLines.length * 12) + 20;
+      y -= boxHeight;
+      
+      // Draw background gray box
+      graphics += `0.97 0.98 0.98 rg\n45 ${y} 522 ${boxHeight} re f\n`;
+      // Draw border
+      graphics += `0.88 0.95 0.99 RG\n0.5 w\n45 ${y} 522 ${boxHeight} re S\n`;
+      
+      // Print code text inside Courier font
+      stream += `BT\n0.2 0.2 0.2 rg\n/F1 9 Tf\n12 TL\n55 ${y + boxHeight - 15} Td\n`;
+      codeLines.forEach(line => {
+        const escaped = line.replace(/[()]/g, '\\$&');
+        stream += `(${escaped}) Tj T*\n`;
       });
-      fileContent += `\n`;
-    }
-    
-    if (activeTopic.commonMistakes) {
-      fileContent += `--------------------------------------------------\n`;
-      fileContent += `⚠️ COMMON MISTAKES TO AVOID\n`;
-      fileContent += `--------------------------------------------------\n`;
-      activeTopic.commonMistakes.forEach(mis => {
-        fileContent += `* ${mis}\n`;
-      });
-      fileContent += `\n`;
-    }
-    
-    fileContent += `==================================================\n`;
-    fileContent += `Generated by EduInsight - 2026\n`;
-    fileContent += `==================================================\n`;
+      stream += 'ET\n';
+      y -= 20;
+    };
 
-    // Create Blob and trigger file system download
-    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+    // 1. Objectives Section
+    if (activeTopic.learningObjectives && activeTopic.learningObjectives.length > 0) {
+      drawSectionHeader('LEARNING OBJECTIVES');
+      drawTextList(activeTopic.learningObjectives, true);
+    }
+    
+    // 2. Concept Section
+    if (activeTopic.conceptExplanation) {
+      drawSectionHeader('CONCEPT EXPLANATION');
+      drawParagraph(activeTopic.conceptExplanation);
+    }
+    
+    // 3. Syntax & Examples Section
+    if (activeTopic.syntax || activeTopic.example) {
+      drawSectionHeader('CODE SYNTAX & EXAMPLES');
+      drawCodeBlock(activeTopic.syntax, activeTopic.example, activeTopic.output);
+    }
+    
+    // 4. Key Takeaways Section
+    if (activeTopic.keyPoints && activeTopic.keyPoints.length > 0) {
+      drawSectionHeader('KEY TAKEAWAYS');
+      drawTextList(activeTopic.keyPoints, false);
+    }
+    
+    // 5. Common Mistakes
+    if (activeTopic.commonMistakes && activeTopic.commonMistakes.length > 0) {
+      drawSectionHeader('COMMON MISTAKES TO AVOID');
+      drawTextList(activeTopic.commonMistakes, false);
+    }
+    
+    // Footer watermark
+    graphics += '0.88 0.95 0.99 RG\n1 w\n45 60 m 572 60 l S\n';
+    stream += `BT\n0.5 0.5 0.5 rg\n/F2 8 Tf\n45 45 Td\n(Generated by EduInsight - Academic Analytics Tracking Portal) Tj\nET\n`;
+    
+    // Combine graphics operations and text operations
+    const fullStream = `${graphics}\n${stream}`;
+    const streamLength = fullStream.length;
+    
+    const pdfData = [
+      '%PDF-1.4\n',
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 5 0 R /MediaBox [0 0 612 2500] >>\nendobj\n',
+      '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n',
+      `5 0 obj\n<< /Length ${streamLength} >>\nstream\n${fullStream}\nendstream\nendobj\n`,
+      '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      '7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n',
+      'xref\n0 8\n0000000000 65535 f \n',
+      'trailer\n<< /Size 8 /Root 1 0 R >>\nstartxref\n120\n%%EOF'
+    ].join('');
+
+    const blob = new Blob([pdfData], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement('a');
     link.href = url;
     
     const downloadName = material.title.endsWith('.pdf') 
-      ? material.title.replace('.pdf', '_Guide.txt') 
-      : `${material.title.replace(/\s+/g, '_')}_Guide.txt`;
+      ? material.title 
+      : `${material.title.replace(/\s+/g, '_')}.pdf`;
       
     link.setAttribute('download', downloadName);
     document.body.appendChild(link);
@@ -134,29 +231,37 @@ export default function Courses({
     URL.revokeObjectURL(url);
   };
 
-  // Mock Assignment Submission
-  const handleFileChange = (e, topic) => {
+  // Assignment Submission
+  const handleFileChange = (e, assnId) => {
     const file = e.target.files[0];
     if (file) {
-      setSubmittingFile(prev => ({ ...prev, [topic.id]: file.name }));
+      setSubmittingFile(prev => ({ ...prev, [assnId]: file.name }));
     }
   };
 
-  const handleAssignmentSubmit = (topic) => {
-    const filename = submittingFile[topic.id];
-    if (!filename) return;
+  const submitLiveAssignment = async (assnId) => {
+    const filename = submittingFile[assnId];
+    if (!filename) return alert("Please select a file first.");
     
-    onAssignmentSubmit(topic.assignment.id, filename);
-    logActivity(`Submitted assignment for topic: ${topic.name} (File: ${filename})`);
-    
-    // Clear submission state
-    setSubmittingFile(prev => {
-      const copy = { ...prev };
-      delete copy[topic.id];
-      return copy;
-    });
-    
-    alert(`✅ Assignment Submitted: "${filename}" uploaded successfully.`);
+    try {
+      await assignmentService.submitAssignment({
+        assignment_id: assnId,
+        student_id: student.user_id,
+        file_name: filename,
+        submission_text: ''
+      });
+      logActivity(`Submitted file for assignment ID: ${assnId} (File: ${filename})`);
+      
+      setSubmittingFile(prev => {
+        const copy = { ...prev };
+        delete copy[assnId];
+        return copy;
+      });
+      
+      alert(`✅ Assignment Submitted: "${filename}" uploaded successfully.`);
+    } catch (err) {
+      alert("Submission failed: " + err.message);
+    }
   };
 
   // Start Quiz Taker
@@ -168,41 +273,36 @@ export default function Courses({
   };
 
   // Submit Quiz Answers
-  const submitQuiz = () => {
+  const submitQuiz = async () => {
     const questions = activeQuiz.questions;
-    let correctCount = 0;
-    
-    questions.forEach((q, idx) => {
-      if (quizAnswers[idx] === q.correctAnswer) {
-        correctCount++;
+    try {
+      const data = await quizService.submitQuiz(student.user_id, activeQuiz.id, quizAnswers);
+      
+      onQuizAttempt(activeQuiz.id, data.score, questions.length);
+      logActivity(`Completed Quiz: ${activeQuiz.title} (Score: ${data.score}/${questions.length} - ${data.percentage}%)`);
+      
+      setActiveTab('syllabus');
+      setActiveQuiz(null);
+      
+      // Alert user about rule-based feedback
+      let feedback = "";
+      if (data.percentage < 60) {
+        feedback = `❌ Score: ${data.percentage}% (Needs Practice). Review the module materials.`;
+      } else if (data.percentage >= 60 && data.percentage < 80) {
+        feedback = `⚠️ Score: ${data.percentage}% (Good). Re-read concepts to master it.`;
+      } else {
+        feedback = `🎉 Score: ${data.percentage}% (Strong). Brilliant execution!`;
       }
-    });
-
-    const percent = Math.round((correctCount / questions.length) * 100);
-    
-    onQuizAttempt(activeQuiz.id, correctCount, questions.length);
-    logActivity(`Completed Quiz: ${activeQuiz.title} (Score: ${correctCount}/${questions.length} - ${percent}%)`);
-    
-    setActiveTab('syllabus');
-    setActiveQuiz(null);
-    
-    // Alert user about rule-based feedback
-    let feedback = "";
-    if (percent < 60) {
-      feedback = `❌ Score: ${percent}% (Needs Practice). Review the module materials.`;
-    } else if (percent >= 60 && percent < 80) {
-      feedback = `⚠️ Score: ${percent}% (Good). Re-read concepts to master it.`;
-    } else {
-      feedback = `🎉 Score: ${percent}% (Strong). Brilliant execution!`;
+      
+      let reviewMessage = `📊 Quiz Submitted!\n\n${feedback}\n\nReview Explanations:\n`;
+      questions.forEach((q, idx) => {
+        const isCorrect = quizAnswers[idx] === q.correctAnswer;
+        reviewMessage += `\nQ${idx + 1}: ${isCorrect ? '✓ Correct' : '✗ Incorrect'}\n`;
+      });
+      alert(reviewMessage);
+    } catch (e) {
+      alert("Failed to submit quiz: " + e.message);
     }
-    
-    // Detailed questions review dialog matching requirements
-    let reviewMessage = `📊 Quiz Submitted!\n\n${feedback}\n\nReview Explanations:\n`;
-    questions.forEach((q, idx) => {
-      const isCorrect = quizAnswers[idx] === q.correctAnswer;
-      reviewMessage += `\nQ${idx + 1}: ${isCorrect ? '✓ Correct' : '✗ Incorrect'}\nExplanation: ${q.explanation}\n`;
-    });
-    alert(reviewMessage);
   };
 
   // Navigate Previous Topic
@@ -323,9 +423,9 @@ export default function Courses({
               </div>
               
               <div style={styles.categoryList}>
-                {SYLLABUS_CATEGORIES.map(cat => {
+                {availableCategories.map((cat, catIdx) => {
                   const isExpanded = expandedCategories[cat];
-                  const topicsInCat = course.topics.filter(t => t.category === cat);
+                  const topicsInCat = (course.topics || []).filter(t => t.category === cat || t.category === `Module ${catIdx + 1}: ${cat}` || cat.includes(t.category));
                   
                   return (
                     <div key={cat} style={styles.categoryBlock}>
@@ -387,9 +487,9 @@ export default function Courses({
                               
                               {/* Module practice quiz at the end of module subtopics */}
                               {(() => {
-                                const catModuleId = SYLLABUS_CATEGORIES.indexOf(cat) + 1;
-                                const moduleQuiz = course.quizzes ? course.quizzes.find(q => q.module_id === catModuleId) : null;
-                                if (!moduleQuiz) return null;
+                                const catModuleId = catIdx + 1;
+                                const moduleQuiz = course.quizzes ? course.quizzes.find(q => q.module_id === catModuleId || q.id === `q-mod-${catModuleId}` || (q.title && q.title.toLowerCase().includes(cat.toLowerCase()))) : null;
+                                if (!moduleQuiz || !moduleQuiz.questions || moduleQuiz.questions.length === 0) return null;
                                 const quizAttempt = student.quizAttempts.find(a => a.quizId === moduleQuiz.id);
                                 const isQuizActive = activeQuiz?.id === moduleQuiz.id;
  
@@ -436,6 +536,56 @@ export default function Courses({
                     </div>
                   );
                 })}
+
+                {/* Comprehensive Final Assessment */}
+                {(() => {
+                  const finalAssessmentQuiz = course.quizzes?.find(q => q.is_final_assessment || q.module_id === 999 || (q.title && q.title.toLowerCase().includes('final assessment')));
+                  if (!finalAssessmentQuiz || !finalAssessmentQuiz.questions || finalAssessmentQuiz.questions.length === 0) return null;
+                  const finalAttempt = student.quizAttempts.find(a => a.quizId === finalAssessmentQuiz.id);
+                  const isFinalActive = activeQuiz?.id === finalAssessmentQuiz.id;
+
+                  return (
+                    <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                      <div 
+                        onClick={() => startQuiz(finalAssessmentQuiz)}
+                        style={{
+                          ...styles.topicNodeRow,
+                          backgroundColor: isFinalActive ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.05)',
+                          borderColor: isFinalActive ? '#f59e0b' : 'rgba(245, 158, 11, 0.3)',
+                          color: '#f59e0b',
+                          fontWeight: '700',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '1rem' }}>🎓</span>
+                          <span style={{ fontSize: '0.85rem' }}>Course Final Assessment</span>
+                        </div>
+                        {finalAttempt ? (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            color: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.1)',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontWeight: 'bold'
+                          }}>
+                            Score: {finalAttempt.percent}%
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {finalAssessmentQuiz.questions.length} Questions
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -464,11 +614,7 @@ export default function Courses({
                     }}>
                       ⚡ {activeTopic.difficulty || "Easy"}
                     </span>
-                    {activeTopic.prerequisites && (
-                      <span style={{...styles.metaBadge, backgroundColor: 'rgba(255, 255, 255, 0.02)', color: '#9ca3af', borderColor: 'rgba(255, 255, 255, 0.05)'}}>
-                        🔑 Prereq: {activeTopic.prerequisites}
-                      </span>
-                    )}
+
                   </div>
                   
                   <div style={styles.readerHeaderRow}>
@@ -592,6 +738,46 @@ export default function Courses({
                         </div>
                       </div>
 
+                      {/* Box 2: Assignments */}
+                      {topicAssignments.length > 0 && (
+                        <div style={styles.interactiveBox}>
+                          <span style={styles.boxTag} style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success)' }}>Assignments</span>
+                          <h5 style={styles.boxTitle}>Required Submissions</h5>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                            {topicAssignments.map(assn => (
+                              <div key={assn.assignment_id} style={{ padding: '12px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-primary)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                  <div>
+                                    <strong style={{ display: 'block', color: 'var(--text-primary)' }}>{assn.title}</strong>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Due: {assn.due_at || 'No Deadline'} | Marks: {assn.max_marks}</span>
+                                  </div>
+                                </div>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>{assn.description}</p>
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <label style={{ flex: 1, cursor: 'pointer' }}>
+                                    <input 
+                                      type="file" 
+                                      style={{ display: 'none' }} 
+                                      onChange={(e) => handleFileChange(e, assn.assignment_id)} 
+                                    />
+                                    <div style={{ padding: '8px 12px', border: '1px dashed var(--primary)', borderRadius: '6px', textAlign: 'center', color: 'var(--primary)', fontSize: '0.85rem' }}>
+                                      {submittingFile[assn.assignment_id] || "Choose file to upload..."}
+                                    </div>
+                                  </label>
+                                  <button 
+                                    onClick={() => submitLiveAssignment(assn.assignment_id)}
+                                    style={{ padding: '8px 16px', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer' }}
+                                  >
+                                    Submit
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                     </div>
 
                   </div>
@@ -672,15 +858,15 @@ export default function Courses({
                         onClick={() => setQuizAnswers(prev => ({ ...prev, [idx]: optIdx }))}
                         style={{
                           ...styles.optionBtn,
-                          borderColor: isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                          backgroundColor: isSelected ? 'rgba(139,92,246,0.08)' : 'rgba(255,255,255,0.01)',
-                          color: isSelected ? '#f3f4f6' : '#9ca3af',
+                          borderColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
+                          backgroundColor: isSelected ? 'rgba(var(--primary-rgb), 0.08)' : 'var(--bg-secondary)',
+                          color: isSelected ? 'var(--primary)' : 'var(--text-primary)',
                         }}
                       >
                         <span style={{
                           ...styles.optionLetter,
-                          backgroundColor: isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
-                          color: isSelected ? '#fff' : '#9ca3af',
+                          backgroundColor: isSelected ? 'var(--primary)' : 'var(--border-color)',
+                          color: isSelected ? '#fff' : 'var(--text-secondary)',
                         }}>
                           {String.fromCharCode(65 + optIdx)}
                         </span>

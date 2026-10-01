@@ -7,8 +7,27 @@ import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import AuthPage from './pages/AuthPage';
 import CourseSelection from './pages/CourseSelection';
+
+// Teacher Module Pages
+import TeacherCourses from './pages/teacher/TeacherCourses';
+import TeacherQuizzes from './pages/teacher/TeacherQuizzes';
+import TeacherAssignments from './pages/teacher/TeacherAssignments';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherAnalytics from './pages/teacher/TeacherAnalytics';
+import TeacherInterventions from './pages/teacher/TeacherInterventions';
+import TeacherReports from './pages/teacher/TeacherReports';
+import TeacherModuleShell from './components/teacher/TeacherModuleShell';
+import TeacherProfileModal from './components/teacher/TeacherProfileModal';
+
+import authService from './services/authService';
+import teacherService from './services/teacherService';
+import courseService from './services/courseService';
+import progressService from './services/progressService';
+import quizService from './services/quizService';
+import analyticsService from './services/analyticsService';
 import { 
   INITIAL_COURSE, 
+  INITIAL_COURSE_SOURCE_VERSION,
   INITIAL_STUDENT_STATE, 
   analyzePerformance 
 } from './mockData';
@@ -36,14 +55,30 @@ const createNewStudentState = (name, email) => ({
 });
 
 export default function App() {
+  const courseSourceVersion = INITIAL_COURSE_SOURCE_VERSION;
+
   // 1. Current Session State
   const [currentUser, setCurrentUser] = useState(() => {
     const user = localStorage.getItem('lap_current_user');
     return user ? JSON.parse(user) : null;
   });
 
-  const [activePage, setActivePage] = useState('dashboard');
+  const [dbAnalytics, setDbAnalytics] = useState(null);
+  const [syncTrigger, setSyncTrigger] = useState(0);
+
+  const [activePage, setActivePage] = useState(() => {
+    const user = localStorage.getItem('lap_current_user');
+    if (user) {
+      try {
+        const parsed = JSON.parse(user);
+        if (parsed.role === 'Teacher') return 'teacher_courses';
+      } catch (e) {}
+    }
+    return 'dashboard';
+  });
   const [selectedTopicId, setSelectedTopicId] = useState(1);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [isTeacherProfileOpen, setIsTeacherProfileOpen] = useState(false);
 
   // Theme Mode State & Synchronization
   const [themeMode, setThemeMode] = useState(() => localStorage.getItem('lap_theme_mode') || 'dark');
@@ -57,11 +92,128 @@ export default function App() {
     setThemeMode(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  // Load database syllabus, progress, and analytics dynamically for students
+  useEffect(() => {
+    if (!currentUser || currentUser.role === 'Teacher') return;
+
+    const loadData = async () => {
+      const studentId = currentUser.user_id;
+      const courseId = selectedCourseId || 'py-101';
+
+      // 0. Check if course exists in local platform courses list
+      const localCourses = JSON.parse(localStorage.getItem('lap_courses_list') || '[]');
+      const foundLocal = localCourses.find(c => c.course_id === courseId);
+
+      if (foundLocal) {
+        setCourseState({
+          id: foundLocal.course_id,
+          title: foundLocal.course_name,
+          instructor: foundLocal.instructor_name || 'Faculty Member',
+          topics: foundLocal.topics || [],
+          quizzes: foundLocal.quizzes || [],
+          modules: foundLocal.modules || []
+        });
+
+        if (foundLocal.topics && foundLocal.topics.length > 0) {
+          setSelectedTopicId(foundLocal.topics[0].id);
+        }
+
+        const loadedState = getStudentStateForUser(currentUser);
+        setStudentState(loadedState);
+        setDbAnalytics(null);
+        return;
+      }
+
+      try {
+        // 1. Fetch course details & syllabus topics
+        const topics = await courseService.getCourseTopics(courseId);
+        const quizzes = await quizService.getQuizzes(courseId);
+        
+        // Load questions for each quiz
+        for (let q of quizzes) {
+          try {
+            q.questions = await quizService.getQuestions(q.id);
+          } catch (err) {
+            q.questions = [];
+          }
+        }
+
+        // Update Course state
+        setCourseState({
+          id: courseId,
+          title: courseId === 'py-101' ? 'Python Programming' : 'Academic Course',
+          instructor: 'Dr. Alok Verma',
+          topics: topics,
+          quizzes: quizzes
+        });
+
+        // 2. Fetch Progress (completed topics list)
+        const progress = await progressService.getProgress(studentId, courseId);
+
+        // 3. Fetch Quiz Results
+        const results = await quizService.getQuizResults(studentId, courseId);
+
+        // 4. Fetch Analytics Aggregations
+        const analyticsData = await analyticsService.getAnalytics(studentId, courseId);
+        setDbAnalytics(analyticsData);
+
+        // Synchronize studentState
+        // Construct studySessions grid (using today's weekday to map hours)
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const currentDay = daysOfWeek[new Date().getDay()];
+        const studySessions = [
+          { date: "Mon", hours: 0 },
+          { date: "Tue", hours: 0 },
+          { date: "Wed", hours: 0 },
+          { date: "Thu", hours: 0 },
+          { date: "Fri", hours: 0 },
+          { date: "Sat", hours: 0 },
+          { date: "Sun", hours: 0 }
+        ];
+
+        // Map weekly time average or total hours to the studySessions chart
+        if (analyticsData && analyticsData.totalStudyHours) {
+          const currentDayObj = studySessions.find(s => s.date === currentDay);
+          if (currentDayObj) {
+            currentDayObj.hours = analyticsData.totalStudyHours;
+          }
+        }
+
+        setStudentState({
+          profile: {
+            name: currentUser.name,
+            email: currentUser.email,
+            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120"
+          },
+          completedTopics: progress.completedTopics || [],
+          quizAttempts: results || [],
+          assignmentSubmissions: [],
+          studySessions,
+          totalStudySeconds: progress.totalStudySeconds || 0
+        });
+
+      } catch (e) {
+        console.warn("PHP Backend offline or unavailable, falling back to local mock data:", e);
+        
+        // LOAD LOCAL FALLBACK DATA
+        const loadedState = getStudentStateForUser(currentUser);
+        setStudentState(loadedState);
+        setCourseState(INITIAL_COURSE);
+        setDbAnalytics(null); // Fallback to calculate performance from local state
+      }
+    };
+
+    loadData();
+  }, [currentUser, syncTrigger, selectedCourseId]);
+
   // 2. Syllabus state (hoisted to allow dynamic module creation)
   const [courseState, setCourseState] = useState(() => {
     const data = localStorage.getItem('lap_course_data');
     if (data) {
       const parsed = JSON.parse(data);
+      if (parsed.sourceVersion !== courseSourceVersion) {
+        return INITIAL_COURSE;
+      }
       const totalInitialQuizQs = INITIAL_COURSE.quizzes.reduce((sum, q) => sum + q.questions.length, 0);
       const totalCachedQuizQs = parsed.quizzes ? parsed.quizzes.reduce((sum, q) => sum + q.questions.length, 0) : 0;
       if (!parsed.topics || parsed.topics.length !== INITIAL_COURSE.topics.length || totalCachedQuizQs !== totalInitialQuizQs) {
@@ -71,6 +223,14 @@ export default function App() {
     }
     return INITIAL_COURSE;
   });
+
+  useEffect(() => {
+    const data = localStorage.getItem('lap_course_data');
+    const parsed = data ? JSON.parse(data) : null;
+    if (parsed?.sourceVersion !== INITIAL_COURSE_SOURCE_VERSION) {
+      setCourseState(INITIAL_COURSE);
+    }
+  }, [courseSourceVersion]);
 
   // Helper to load user-specific stats
   const getStudentStateForUser = (user) => {
@@ -121,19 +281,37 @@ export default function App() {
   // Sync states on user transitions
   useEffect(() => {
     if (currentUser) {
-      const emailKey = currentUser.email.toLowerCase();
-      const loadedState = getStudentStateForUser(currentUser);
-      setStudentState(loadedState);
+      if (currentUser.role === 'Teacher') {
+        teacherService.getNotifications(currentUser.user_id)
+          .then(list => {
+            if (Array.isArray(list) && list.length > 0) {
+              setNotifications(list);
+            } else {
+              setNotifications([
+                { id: 1, text: "Welcome Dr. Verma. All academic courses, student attempts, and evaluations are synced.", unread: false, time: "Just now" }
+              ]);
+            }
+          })
+          .catch(() => {
+            setNotifications([
+              { id: 1, text: "Academic portal ready. MySQL connected.", unread: false, time: "Just now" }
+            ]);
+          });
+      } else {
+        const emailKey = currentUser.email.toLowerCase();
+        const loadedState = getStudentStateForUser(currentUser);
+        setStudentState(loadedState);
 
-      const logs = localStorage.getItem(`lap_activity_logs_${emailKey}`);
-      setActivityLog(logs ? JSON.parse(logs) : [
-        { text: "Logged into portal student dashboard", time: "Just now" }
-      ]);
+        const logs = localStorage.getItem(`lap_activity_logs_${emailKey}`);
+        setActivityLog(logs ? JSON.parse(logs) : [
+          { text: "Logged into portal student dashboard", time: "Just now" }
+        ]);
 
-      const list = localStorage.getItem(`lap_notifications_${emailKey}`);
-      setNotifications(list ? JSON.parse(list) : [
-        { id: 1, text: "Syllabus workspace loaded successfully. Enroll in Python Programming to begin.", unread: true, time: "Just now" }
-      ]);
+        const list = localStorage.getItem(`lap_notifications_${emailKey}`);
+        setNotifications(list ? JSON.parse(list) : [
+          { id: 1, text: "Syllabus workspace loaded successfully. Enroll in Python Programming to begin.", unread: true, time: "Just now" }
+        ]);
+      }
     } else {
       setStudentState(null);
       setActivityLog([]);
@@ -143,8 +321,11 @@ export default function App() {
 
   // Sync courseState to localStorage
   useEffect(() => {
-    localStorage.setItem('lap_course_data', JSON.stringify(courseState));
-  }, [courseState]);
+    localStorage.setItem('lap_course_data', JSON.stringify({
+      ...courseState,
+      sourceVersion: courseSourceVersion
+    }));
+  }, [courseState, courseSourceVersion]);
 
   // Sync workspace state to LocalStorage
   useEffect(() => {
@@ -215,7 +396,7 @@ export default function App() {
     logActivity("Paused study session");
   };
 
-  const stopTimer = () => {
+  const stopTimer = async () => {
     if (!studyTimer.isActive) return;
 
     if (timerIntervalRef.current) {
@@ -226,28 +407,23 @@ export default function App() {
     const elapsedSeconds = studyTimer.seconds;
     const elapsedMinutes = Math.round(elapsedSeconds / 60) || 1;
 
-    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const currentDay = daysOfWeek[new Date().getDay()];
-    const addedHours = Number((elapsedSeconds / 3600).toFixed(3));
-
-    setStudentState(prev => {
-      if (!prev) return prev;
-      const updatedSessions = prev.studySessions.map(session => {
-        if (session.date === currentDay) {
-          return { ...session, hours: Number((session.hours + addedHours).toFixed(1)) };
-        }
-        return session;
-      });
-
-      return {
-        ...prev,
-        totalStudySeconds: prev.totalStudySeconds + elapsedSeconds,
-        studySessions: updatedSessions
-      };
-    });
-
-    logActivity(`Completed study session. Duration: ${elapsedMinutes} minute(s)`);
-    alert(`⏱️ Session Logged:\n\nYou studied for ${elapsedMinutes} minute(s). Progress saved to total study time!`);
+    try {
+      // Save study time to active topic in database
+      await progressService.saveProgress(
+        currentUser.user_id,
+        'py-101',
+        selectedTopicId,
+        false,
+        null,
+        elapsedSeconds
+      );
+      
+      logActivity(`Completed study session. Duration: ${elapsedMinutes} minute(s)`);
+      alert(`⏱️ Session Logged:\n\nYou studied for ${elapsedMinutes} minute(s). Progress saved to total study time!`);
+      setSyncTrigger(prev => prev + 1);
+    } catch (e) {
+      console.error("Failed to log study session time to DB:", e);
+    }
 
     setStudyTimer({
       isActive: false,
@@ -260,6 +436,11 @@ export default function App() {
   const handleAuthSuccess = (user) => {
     localStorage.setItem('lap_current_user', JSON.stringify(user));
     setCurrentUser(user);
+    if (user?.role === 'Teacher') {
+      setActivePage('teacher_courses');
+    } else {
+      setActivePage('dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -271,31 +452,56 @@ export default function App() {
   };
 
   // Catalog selection
-  const handleEnrollCourse = (courseId) => {
-    const updatedUser = {
-      ...currentUser,
-      enrolledCourses: [...(currentUser.enrolledCourses || []), courseId]
-    };
-    
-    // Sync to user profiles list
-    const db = JSON.parse(localStorage.getItem('lap_users_db') || '[]');
-    const updatedDB = db.map(u => {
-      if (u.email.toLowerCase() === currentUser.email.toLowerCase()) {
-        return { ...u, enrolledCourses: updatedUser.enrolledCourses };
-      }
-      return u;
-    });
-    localStorage.setItem('lap_users_db', JSON.stringify(updatedDB));
-    
-    // Commit current user state
-    localStorage.setItem('lap_current_user', JSON.stringify(updatedUser));
-    setCurrentUser(updatedUser);
-    
-    // Seed enrollment alert in notifications
-    setNotifications(prev => [
-      { id: Date.now(), text: "Successfully enrolled in Python Programming! Create or add syllabus topics to begin.", unread: true, time: "Just now" },
-      ...prev
-    ]);
+  const handleEnrollCourse = async (courseId) => {
+    try {
+      // Try database enrollment first
+      await courseService.enrollInCourse(currentUser.user_id, courseId);
+      
+      const updatedUser = {
+        ...currentUser,
+        enrolledCourses: [...(currentUser.enrolledCourses || []), courseId]
+      };
+      
+      // Commit current user state
+      localStorage.setItem('lap_current_user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+      setSelectedCourseId(courseId);
+      setSyncTrigger(prev => prev + 1);
+
+      // Seed enrollment alert in notifications
+      setNotifications(prev => [
+        { id: Date.now(), text: "Successfully enrolled in Python Programming! Create or add syllabus topics to begin.", unread: true, time: "Just now" },
+        ...prev
+      ]);
+    } catch (e) {
+      console.warn("Backend API offline during enrollment, falling back to mock enrollment locally:", e);
+      
+      // FALLBACK TO OFFLINE MOCK ENROLLMENT
+      const updatedUser = {
+        ...currentUser,
+        enrolledCourses: [...(currentUser.enrolledCourses || []), courseId]
+      };
+      
+      // Sync to user profiles list
+      const db = JSON.parse(localStorage.getItem('lap_users_db') || '[]');
+      const updatedDB = db.map(u => {
+        if (u.email.toLowerCase() === currentUser.email.toLowerCase()) {
+          return { ...u, enrolledCourses: updatedUser.enrolledCourses };
+        }
+        return u;
+      });
+      localStorage.setItem('lap_users_db', JSON.stringify(updatedDB));
+      
+      // Commit current user state
+      localStorage.setItem('lap_current_user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+      setSelectedCourseId(courseId);
+      
+      setNotifications(prev => [
+        { id: Date.now(), text: "Successfully enrolled in Python Programming (Offline)! Create or add syllabus topics to begin.", unread: true, time: "Just now" },
+        ...prev
+      ]);
+    }
   };
 
   const handleLeaveCourse = () => {
@@ -304,19 +510,11 @@ export default function App() {
       enrolledCourses: []
     };
     
-    // Sync to user profiles list
-    const db = JSON.parse(localStorage.getItem('lap_users_db') || '[]');
-    const updatedDB = db.map(u => {
-      if (u.email.toLowerCase() === currentUser.email.toLowerCase()) {
-        return { ...u, enrolledCourses: [] };
-      }
-      return u;
-    });
-    localStorage.setItem('lap_users_db', JSON.stringify(updatedDB));
-    
     // Commit current user state
     localStorage.setItem('lap_current_user', JSON.stringify(updatedUser));
     setCurrentUser(updatedUser);
+    setSelectedCourseId(null);
+    setSyncTrigger(prev => prev + 1);
     
     logActivity("Left Python Programming workspace to browse course registry catalog");
   };
@@ -405,45 +603,33 @@ export default function App() {
   };
 
   // Topic Completion Toggles
-  const handleMarkTopicCompleted = (topicId) => {
+  const handleMarkTopicCompleted = async (topicId) => {
     if (!studentState) return;
-    setStudentState(prev => {
-      const isCompleted = prev.completedTopics.includes(topicId);
-      let updatedList;
+    const isCompleted = studentState.completedTopics.includes(topicId);
+    try {
+      await progressService.saveProgress(
+        currentUser.user_id,
+        'py-101',
+        topicId,
+        !isCompleted,
+        !isCompleted ? 100.00 : 0.00
+      );
+      
+      const topicObj = courseState.topics.find(t => t.id === topicId);
       if (isCompleted) {
-        updatedList = prev.completedTopics.filter(id => id !== topicId);
-        logActivity(`Removed topic completion: "${courseState.topics.find(t => t.id === topicId).name}"`);
+        logActivity(`Removed topic completion: "${topicObj?.name}"`);
       } else {
-        updatedList = [...prev.completedTopics, topicId];
-        logActivity(`Marked topic as completed: "${courseState.topics.find(t => t.id === topicId).name}"`);
+        logActivity(`Marked topic as completed: "${topicObj?.name}"`);
       }
-      return {
-        ...prev,
-        completedTopics: updatedList
-      };
-    });
+      setSyncTrigger(prev => prev + 1);
+    } catch (e) {
+      console.error("Failed to save progress completion to DB:", e);
+    }
   };
 
-  // Quiz submission
+  // Quiz submission callback
   const handleQuizAttempt = (quizId, correctScore, totalQuestions) => {
-    if (!studentState) return;
-    const percent = Math.round((correctScore / totalQuestions) * 100);
-    setStudentState(prev => {
-      const otherAttempts = prev.quizAttempts.filter(q => q.quizId !== quizId);
-      return {
-        ...prev,
-        quizAttempts: [
-          ...otherAttempts,
-          {
-            quizId,
-            score: correctScore,
-            total: totalQuestions,
-            percent,
-            timestamp: "Just now"
-          }
-        ]
-      };
-    });
+    setSyncTrigger(prev => prev + 1);
   };
 
   // File assignment submissions
@@ -468,23 +654,30 @@ export default function App() {
   };
 
   // Settings modification
-  const handleUpdateProfile = (name, email) => {
+  const handleUpdateProfile = async (name, email) => {
     if (!studentState) return;
-    setStudentState(prev => ({
-      ...prev,
-      profile: {
-        ...prev.profile,
-        name,
-        email
-      }
-    }));
-    
-    // Sync back name to current session user
-    const updatedUser = { ...currentUser, name };
-    localStorage.setItem('lap_current_user', JSON.stringify(updatedUser));
-    setCurrentUser(updatedUser);
-    
-    logActivity(`Updated profile details: Name to "${name}"`);
+    try {
+      await authService.updateProfile(currentUser.user_id, name);
+      
+      setStudentState(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          name,
+          email
+        }
+      }));
+      
+      // Sync back name to current session user
+      const updatedUser = { ...currentUser, name };
+      localStorage.setItem('lap_current_user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+      
+      logActivity(`Updated profile details: Name to "${name}"`);
+      setSyncTrigger(prev => prev + 1);
+    } catch (e) {
+      alert("Failed to update profile: " + e.message);
+    }
   };
 
   // Hard Reset workspace state
@@ -522,23 +715,33 @@ export default function App() {
   };
 
   const markNotificationsAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false, is_read: 1 })));
+    if (currentUser?.role === 'Teacher') {
+      teacherService.markAllNotificationsRead(currentUser.user_id).catch(() => {});
+    }
   };
 
   // --- ROUTING ENGINE ---
+  const isTeacher = currentUser?.role === 'Teacher';
   
-  // Rule A: Student not authenticated ➜ Auth portal
+  // Rule A: Not authenticated ➜ Auth portal
   if (!currentUser) {
     return <AuthPage onAuthSuccess={handleAuthSuccess} />;
   }
 
-  // Rule B: Student authenticated but not enrolled in the Python Course ➜ Catalog
-  const enrolled = currentUser.enrolledCourses && currentUser.enrolledCourses.includes('py-101');
-  if (!enrolled) {
-    return <CourseSelection student={currentUser} onEnroll={handleEnrollCourse} />;
+  // Rule B: Land student on catalog selection page first when logging in (selectedCourseId === null)
+  // Teachers skip this catalog gate
+  if (!isTeacher && !selectedCourseId) {
+    return (
+      <CourseSelection 
+        student={currentUser} 
+        onEnroll={handleEnrollCourse} 
+        onSelectCourse={setSelectedCourseId} 
+      />
+    );
   }
 
-  // Rule C: Fully authenticated & Enrolled ➜ Workspace Layout
+  // Rule C: Fully authenticated ➜ Workspace Layout
   const analytics = studentState ? analyzePerformance(studentState, courseState) : {
     progressPercent: 0,
     avgQuizScore: 0,
@@ -559,79 +762,141 @@ export default function App() {
         activePage={activePage} 
         setActivePage={setActivePage} 
         studentName={currentUser.name}
+        userRole={currentUser.role || 'Student'}
         onLogout={handleLogout}
+        onOpenProfile={() => setIsTeacherProfileOpen(true)}
       />
 
       {/* Main Workspace Frame */}
       <div style={styles.contentWrapper}>
         
         {/* Header toolbar */}
-        {studentState && (
-          <Header 
-            student={studentState}
-            studyTimer={studyTimer}
-            startTimer={startTimer}
-            pauseTimer={pauseTimer}
-            stopTimer={stopTimer}
-            notifications={notifications}
-            markNotificationsAsRead={markNotificationsAsRead}
-            themeMode={themeMode}
-            onToggleTheme={toggleTheme}
-          />
-        )}
+        <Header 
+          student={studentState || { profile: { name: currentUser.name, email: currentUser.email } }}
+          studyTimer={studyTimer}
+          startTimer={startTimer}
+          pauseTimer={pauseTimer}
+          stopTimer={stopTimer}
+          notifications={notifications}
+          markNotificationsAsRead={markNotificationsAsRead}
+          themeMode={themeMode}
+          onToggleTheme={toggleTheme}
+          userRole={currentUser.role || 'Student'}
+          onOpenProfile={() => setIsTeacherProfileOpen(true)}
+        />
 
         {/* View Port Outlet */}
         <main style={styles.pageOutlet}>
-          {studentState && activePage === 'dashboard' && (
-            <Dashboard 
-              student={studentState}
-              course={courseState}
-              analytics={analytics}
-              studyTimer={studyTimer}
-              startTimer={startTimer}
-              pauseTimer={pauseTimer}
-              stopTimer={stopTimer}
-              setActivePage={setActivePage}
-              setSelectedTopicId={setSelectedTopicId}
-            />
-          )}
+          {isTeacher ? (
+            <>
+              {(activePage === 'teacher_quizzes' || activePage === 'teacher_smart_quiz' || activePage === 'teacher_question_bank') ? (
+                <TeacherQuizzes
+                  teacher={currentUser}
+                  currentUser={currentUser}
+                  initialTab={
+                    activePage === 'teacher_smart_quiz'
+                      ? 'smart_builder'
+                      : activePage === 'teacher_question_bank'
+                      ? 'question_bank'
+                      : 'dashboard'
+                  }
+                />
+              ) : activePage === 'teacher_courses' ? (
+                <TeacherCourses
+                  teacher={currentUser}
+                  currentUser={currentUser}
+                  onCourseSelect={setSelectedCourseId}
+                  onOpenQuizzes={() => setActivePage('teacher_quizzes')}
+                />
+              ) : activePage === 'teacher_assignments' ? (
+                <TeacherAssignments teacher={currentUser} />
+              ) : activePage === 'teacher_dashboard' ? (
+                <TeacherDashboard teacher={currentUser} setActivePage={setActivePage} setSelectedCourseId={setSelectedCourseId} />
+              ) : activePage === 'teacher_analytics' ? (
+                <TeacherAnalytics teacher={currentUser} />
+              ) : activePage === 'teacher_interventions' ? (
+                <TeacherInterventions teacher={currentUser} />
+              ) : activePage === 'teacher_reports' ? (
+                <TeacherReports teacher={currentUser} />
+              ) : (
+                <TeacherModuleShell
+                  moduleKey={activePage}
+                  setActivePage={setActivePage}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {studentState && activePage === 'dashboard' && (
+                <Dashboard 
+                  student={studentState}
+                  course={courseState}
+                  analytics={analytics}
+                  studyTimer={studyTimer}
+                  startTimer={startTimer}
+                  pauseTimer={pauseTimer}
+                  stopTimer={stopTimer}
+                  setActivePage={setActivePage}
+                  setSelectedTopicId={setSelectedTopicId}
+                />
+              )}
 
-          {studentState && activePage === 'courses' && (
-            <Courses 
-              student={studentState}
-              course={courseState}
-              onMarkTopicCompleted={handleMarkTopicCompleted}
-              onQuizAttempt={handleQuizAttempt}
-              onAssignmentSubmit={handleAssignmentSubmit}
-              logActivity={logActivity}
-              selectedTopicId={selectedTopicId}
-              setSelectedTopicId={setSelectedTopicId}
-              onLogout={handleLogout}
-              onResetProgress={handleResetProgress}
-              onLeaveCourse={handleLeaveCourse}
-              setActivePage={setActivePage}
-            />
-          )}
+              {studentState && activePage === 'courses' && (
+                <Courses 
+                  student={studentState}
+                  course={courseState}
+                  onMarkTopicCompleted={handleMarkTopicCompleted}
+                  onQuizAttempt={handleQuizAttempt}
+                  onAssignmentSubmit={handleAssignmentSubmit}
+                  logActivity={logActivity}
+                  selectedTopicId={selectedTopicId}
+                  setSelectedTopicId={setSelectedTopicId}
+                  onLogout={handleLogout}
+                  onResetProgress={handleResetProgress}
+                  onLeaveCourse={handleLeaveCourse}
+                  setActivePage={setActivePage}
+                />
+              )}
 
-          {studentState && activePage === 'analytics' && (
-            <Analytics 
-              student={studentState}
-              course={courseState}
-              analytics={analytics}
-            />
-          )}
+              {activePage === 'analytics' && (
+                <Analytics 
+                  student={studentState}
+                  course={courseState}
+                  analytics={analytics}
+                  currentUser={currentUser}
+                  setActivePage={setActivePage}
+                  setSelectedTopicId={setSelectedTopicId}
+                />
+              )}
 
-          {studentState && activePage === 'profile' && (
-            <Profile 
-              student={studentState}
-              updateProfile={handleUpdateProfile}
-              activityLog={activityLog}
-              onResetProgress={handleResetProgress}
-            />
+              {studentState && activePage === 'profile' && (
+                <Profile 
+                  student={studentState}
+                  updateProfile={handleUpdateProfile}
+                  activityLog={activityLog}
+                  onResetProgress={handleResetProgress}
+                />
+              )}
+            </>
           )}
         </main>
 
       </div>
+
+      {/* Teacher Profile & Settings Modal */}
+      {isTeacher && (
+        <TeacherProfileModal
+          isOpen={isTeacherProfileOpen}
+          onClose={() => setIsTeacherProfileOpen(false)}
+          teacher={currentUser}
+          themeMode={themeMode}
+          onToggleTheme={toggleTheme}
+          onProfileUpdated={(updated) => {
+            setCurrentUser(updated);
+            localStorage.setItem('lap_current_user', JSON.stringify(updated));
+          }}
+        />
+      )}
 
     </div>
   );

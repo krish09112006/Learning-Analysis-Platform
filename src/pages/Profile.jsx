@@ -45,7 +45,7 @@ export default function Profile({ student, updateProfile, activityLog, onResetPr
         <div className="glass-card" style={styles.profileCard}>
           <div style={styles.avatarWrapper}>
             <div style={styles.defaultUserIcon}>
-              <User size={36} color="#8b5cf6" />
+              <User size={36} color="var(--primary)" />
             </div>
             <div style={styles.roleBadge}>STUDENT</div>
           </div>
@@ -56,7 +56,7 @@ export default function Profile({ student, updateProfile, activityLog, onResetPr
           
           <div style={styles.statsSummary}>
             <div style={styles.summaryItem}>
-              <Award size={16} color="#8b5cf6" />
+              <Award size={16} color="var(--primary)" />
               <div>
                 <span style={styles.summaryLabel}>Topics Completed</span>
                 <h4 style={styles.summaryValue}>{student.completedTopics.length} Modules</h4>
@@ -70,10 +70,6 @@ export default function Profile({ student, updateProfile, activityLog, onResetPr
               </div>
             </div>
           </div>
-
-          <button onClick={handleReset} style={styles.resetBtn}>
-            <RefreshCw size={14} /> Reset Demo Workspace
-          </button>
         </div>
 
         {/* Right Card: Modify Form */}
@@ -182,14 +178,14 @@ const styles = {
     height: '100px',
     borderRadius: '24px',
     objectFit: 'cover',
-    border: '2px solid rgba(139, 92, 246, 0.4)',
+    border: '2px solid rgba(var(--primary-rgb), 0.4)',
   },
   defaultUserIcon: {
     width: '100px',
     height: '100px',
     borderRadius: '24px',
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-    border: '2px solid rgba(139, 92, 246, 0.4)',
+    backgroundColor: 'rgba(var(--primary-rgb), 0.08)',
+    border: '2px solid rgba(var(--primary-rgb), 0.4)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -199,7 +195,7 @@ const styles = {
     bottom: '-8px',
     left: '50%',
     transform: 'translateX(-50%)',
-    backgroundColor: '#8b5cf6',
+    backgroundColor: 'var(--primary)',
     color: '#fff',
     fontSize: '0.65rem',
     fontWeight: '700',
@@ -209,19 +205,19 @@ const styles = {
   },
   userName: {
     fontSize: '1.25rem',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     fontWeight: '700',
     fontFamily: "'Outfit', sans-serif",
   },
   userEmail: {
     fontSize: '0.8rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     marginTop: '2px',
   },
   statListDivider: {
     height: '1px',
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'var(--border-color)',
     margin: '1.5rem 0',
   },
   statsSummary: {
@@ -239,23 +235,23 @@ const styles = {
   },
   summaryLabel: {
     fontSize: '0.7rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     textTransform: 'uppercase',
     fontWeight: '600',
   },
   summaryValue: {
     fontSize: '0.9rem',
-    color: '#e5e7eb',
+    color: 'var(--text-primary)',
     fontWeight: '600',
   },
   resetBtn: {
     marginTop: '2rem',
     width: '100%',
     padding: '10px',
-    border: '1px solid rgba(244,63,94,0.2)',
+    border: '1px solid rgba(239,68,68,0.2)',
     borderRadius: '8px',
-    backgroundColor: 'rgba(244,63,94,0.02)',
-    color: '#f43f5e',
+    backgroundColor: 'rgba(239,68,68,0.02)',
+    color: 'var(--danger)',
     fontSize: '0.8rem',
     fontWeight: '600',
     display: 'flex',
@@ -269,13 +265,13 @@ const styles = {
   },
   cardHeading: {
     fontSize: '1.15rem',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     fontWeight: '600',
     fontFamily: "'Outfit', sans-serif",
   },
   cardDesc: {
     fontSize: '0.8rem',
-    color: '#9ca3af',
+    color: 'var(--text-secondary)',
     marginTop: '4px',
     lineHeight: '1.4',
   },
@@ -292,7 +288,7 @@ const styles = {
   },
   label: {
     fontSize: '0.75rem',
-    color: '#9ca3af',
+    color: 'var(--text-secondary)',
     fontWeight: '600',
   },
   inputWrapper: {
@@ -318,13 +314,13 @@ const styles = {
   saveBtn: {
     alignSelf: 'flex-start',
     padding: '10px 24px',
-    backgroundColor: '#8b5cf6',
+    backgroundColor: 'var(--primary)',
     color: '#fff',
     borderRadius: '8px',
     fontSize: '0.85rem',
     fontWeight: '600',
     marginTop: '8px',
-    boxShadow: '0 0 15px rgba(139,92,246,0.3)',
+    boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)',
   },
   saveSuccess: {
     fontSize: '0.8rem',
@@ -337,7 +333,7 @@ const styles = {
   },
   activityTitle: {
     fontSize: '1.15rem',
-    color: '#f3f4f6',
+    color: 'var(--text-primary)',
     fontWeight: '600',
     fontFamily: "'Outfit', sans-serif",
     display: 'flex',
@@ -348,7 +344,7 @@ const styles = {
   },
   activitySubtitle: {
     fontSize: '0.8rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     marginTop: '4px',
   },
   timeline: {
@@ -359,7 +355,7 @@ const styles = {
   emptyTimeline: {
     padding: '24px',
     textAlign: 'center',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     fontSize: '0.8rem',
   },
   timelineItem: {
@@ -376,28 +372,28 @@ const styles = {
   indicatorDot: {
     width: '8px',
     height: '8px',
-    backgroundColor: '#6366f1',
+    backgroundColor: 'var(--primary)',
     borderRadius: '50%',
-    border: '2px solid #0f1422',
-    boxShadow: '0 0 8px #6366f1',
+    border: '2px solid var(--bg-card)',
+    boxShadow: '0 0 8px rgba(2, 132, 199, 0.5)',
   },
   indicatorLine: {
     width: '2px',
     flexGrow: 1,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'var(--border-color)',
   },
   timelineContent: {
     paddingBottom: '16px',
   },
   timelineText: {
     fontSize: '0.85rem',
-    color: '#e5e7eb',
+    color: 'var(--text-primary)',
     fontWeight: '500',
     marginTop: '-3px',
   },
   timelineTime: {
     fontSize: '0.7rem',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     display: 'block',
     marginTop: '2px',
   },

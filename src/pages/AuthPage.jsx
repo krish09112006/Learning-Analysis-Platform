@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Lock, Award, ShieldCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Award, ShieldCheck, ArrowRight, Eye, EyeOff, AlertCircle, GraduationCap, School } from 'lucide-react';
+import authService from '../services/authService';
 
 export default function AuthPage({ onAuthSuccess }) {
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
+  const [role, setRole] = useState('Student'); // 'Student' or 'Teacher'
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const roleLabel = role === 'Teacher' ? 'Teacher' : 'Student';
   
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -23,6 +26,7 @@ export default function AuthPage({ onAuthSuccess }) {
         name: "Krish Patel",
         email: "krish.patel@college.edu",
         password: "password123",
+        role: "Student",
         enrolledCourses: ["py-101"] // Default pre-enrolled for demo
       }
     ];
@@ -30,40 +34,52 @@ export default function AuthPage({ onAuthSuccess }) {
     return defaultDB;
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
-    const db = getMockUsersDB();
-    const matchedUser = db.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (!matchedUser) {
-      setError('No student account found with this email. Please register first.');
-      return;
-    }
-    
-    if (matchedUser.password !== password) {
-      setError('Incorrect password. Please try again.');
-      return;
-    }
+    try {
+      const user = await authService.login(email, password);
+      setSuccessMsg('Authentication successful! Opening workspace...');
+      setTimeout(() => {
+        onAuthSuccess(user);
+      }, 1200);
+    } catch (err) {
+      console.warn("Backend API offline, falling back to mock login verification:", err);
+      // Fallback check against mock local storage DB
+      const db = getMockUsersDB();
+      const matchedUser = db.find(u => u.email.toLowerCase() === email.toLowerCase());
+      
+      if (!matchedUser) {
+        setError('No account found with this email. Please register first.');
+        return;
+      }
+      
+      if (matchedUser.password !== password) {
+        setError('Incorrect password. Please try again.');
+        return;
+      }
 
-    setSuccessMsg('Authentication successful! Opening workspace...');
-    setTimeout(() => {
-      onAuthSuccess({
-        name: matchedUser.name,
-        email: matchedUser.email,
-        enrolledCourses: matchedUser.enrolledCourses || []
-      });
-    }, 1200);
+      setSuccessMsg('Authentication successful (Offline Mode)! Opening workspace...');
+      setTimeout(() => {
+        onAuthSuccess({
+          user_id: 1, // default mock student user_id
+          name: matchedUser.name,
+          email: matchedUser.email,
+          role: matchedUser.role || 'Student',
+          enrolledCourses: matchedUser.enrolledCourses || ["py-101"]
+        });
+      }, 1200);
+    }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Full Student Name validation (no numbers, must contain a space)
+    // Full name validation (no numbers, must contain a space)
     if (/\d/.test(name)) {
-      setError('Full Student Name must not contain numbers.');
+      setError(`Full ${roleLabel} Name must not contain numbers.`);
       return;
     }
     if (!name.trim().includes(' ')) {
@@ -94,35 +110,47 @@ export default function AuthPage({ onAuthSuccess }) {
       return;
     }
 
-    const db = getMockUsersDB();
-    const alreadyExists = db.some(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (alreadyExists) {
-      setError('An account with this email is already registered. Try logging in.');
-      return;
+    try {
+      await authService.register(name, email, password, role);
+      setSuccessMsg(`Registration successful as ${role}! Please sign in using your credentials.`);
+      
+      // Switch to login tab and pre-fill fields after a brief delay
+      setTimeout(() => {
+        setActiveTab('login');
+        setSuccessMsg('');
+        setError('');
+        setPassword('');
+        setConfirmPassword('');
+      }, 2200);
+    } catch (err) {
+      console.warn("Backend API offline, saving credentials to mock database locally:", err);
+      
+      const db = getMockUsersDB();
+      const alreadyExists = db.some(u => u.email.toLowerCase() === email.toLowerCase());
+      if (alreadyExists) {
+        setError('An account with this email is already registered. Try logging in.');
+        return;
+      }
+
+      const newUser = {
+        name,
+        email,
+        password,
+        role,
+        enrolledCourses: ["py-101"] // default enroll in mock mode
+      };
+      db.push(newUser);
+      localStorage.setItem('lap_users_db', JSON.stringify(db));
+
+      setSuccessMsg('Registration successful (Mock Mode)! Please sign in.');
+      setTimeout(() => {
+        setActiveTab('login');
+        setSuccessMsg('');
+        setError('');
+        setPassword('');
+        setConfirmPassword('');
+      }, 2200);
     }
-
-    // Register user with empty enrollments
-    const newUser = {
-      name,
-      email,
-      password,
-      enrolledCourses: [] // Course selection required
-    };
-
-    db.push(newUser);
-    localStorage.setItem('lap_users_db', JSON.stringify(db));
-    
-    setSuccessMsg('Registration successful! Please sign in using your credentials.');
-    
-    // Switch to login tab and pre-fill fields after a brief delay
-    setTimeout(() => {
-      setActiveTab('login');
-      setSuccessMsg('');
-      setError('');
-      setPassword('');
-      setConfirmPassword('');
-    }, 2200);
   };
 
   // Reset error when switching tabs
@@ -155,7 +183,7 @@ export default function AuthPage({ onAuthSuccess }) {
           <div style={styles.visualFooter}>
             <div style={styles.shieldBadge}>
               <ShieldCheck size={16} color="#10b981" />
-              <span>Rule-Based Analytical Thresholds (No AI/ML)</span>
+              <span>Rule-Based Analytical Thresholds</span>
             </div>
           </div>
         </div>
@@ -205,7 +233,63 @@ export default function AuthPage({ onAuthSuccess }) {
             <form onSubmit={handleLoginSubmit} style={styles.form}>
               <div style={styles.formInfo}>
                 <h4 style={styles.formTitle}>Welcome Back</h4>
-                <p style={styles.formSubtitle}>Sign in to access your student learning account and dashboard.</p>
+                <p style={styles.formSubtitle}>Sign in to access your course workspace and analytics dashboard.</p>
+              </div>
+
+              {/* Demo Account Quick-Fill Buttons */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                padding: '10px 12px',
+                backgroundColor: 'rgba(var(--primary-rgb), 0.05)',
+                border: '1px solid rgba(var(--primary-rgb), 0.15)',
+                borderRadius: '10px',
+                marginBottom: '10px'
+              }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>QUICK DEMO CREDENTIALS:</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('krish.patel@college.edu');
+                      setPassword('password');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--primary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🎓 Student (Krish)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail('alok.verma@college.edu');
+                      setPassword('password');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--accent)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    👨‍🏫 Teacher (Dr. Verma)
+                  </button>
+                </div>
               </div>
 
               <div style={styles.inputField}>
@@ -246,19 +330,68 @@ export default function AuthPage({ onAuthSuccess }) {
               </div>
 
               <button type="submit" style={styles.submitBtn}>
-                Sign In To Dashboard <ArrowRight size={16} />
+                Sign In To Workspace <ArrowRight size={16} />
               </button>
             </form>
           ) : (
             /* REGISTER FORM */
             <form onSubmit={handleRegisterSubmit} style={styles.form}>
               <div style={styles.formInfo}>
-                <h4 style={styles.formTitle}>New Student Registration</h4>
-                <p style={styles.formSubtitle}>Create a student profile to enroll in courses and track milestones.</p>
+                <h4 style={styles.formTitle}>Create Platform Account</h4>
+                <p style={styles.formSubtitle}>Select your platform role and create your academic profile.</p>
+              </div>
+
+              {/* Role Selection */}
+              <div style={styles.inputField}>
+                <label style={styles.fieldLabel}>Account Role</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRole('Student')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      border: role === 'Student' ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                      backgroundColor: role === 'Student' ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--bg-card)',
+                      color: role === 'Student' ? 'var(--primary)' : 'var(--text-secondary)'
+                    }}
+                  >
+                    <GraduationCap size={18} />
+                    <span>Student</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('Teacher')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      border: role === 'Teacher' ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                      backgroundColor: role === 'Teacher' ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--bg-card)',
+                      color: role === 'Teacher' ? 'var(--primary)' : 'var(--text-secondary)'
+                    }}
+                  >
+                    <School size={18} />
+                    <span>Teacher</span>
+                  </button>
+                </div>
               </div>
 
               <div style={styles.inputField}>
-                <label style={styles.fieldLabel}>Full Student Name</label>
+                  <label style={styles.fieldLabel}>Full {roleLabel} Name</label>
                 <div style={styles.inputWrapper}>
                   <User size={16} style={styles.inputIcon} />
                   <input 
@@ -334,17 +467,6 @@ export default function AuthPage({ onAuthSuccess }) {
 
       </div>
     </div>
-  );
-}
-
-// Inline alert icons helper
-function AlertCircle({ size, style }) {
-  return (
-    <svg style={style} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="8" x2="12" y2="12"></line>
-      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-    </svg>
   );
 }
 

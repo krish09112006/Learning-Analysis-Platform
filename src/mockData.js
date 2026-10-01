@@ -341,36 +341,43 @@ function compileTopicContent(name, id, module_name) {
           "Identify typical use cases and system scripts capabilities",
           "Contrast Python syntax constraints with curly brace languages"
         ],
-        conceptExplanation: `### What is Python?
-Python is a popular programming language. It was created by Guido van Rossum, and released in 1991.
-It is used for:
-* Web development (server-side)
-* Software development
-* Mathematics
-* System scripting
+        conceptExplanation: `1. What is Python?
+-Python is a popular programming language. It was created by Guido van Rossum, and released in 1991.
 
-### What can Python do?
-* Python can be used on a server to create web applications.
-* Python can be used alongside software to create workflows.
-* Python can connect to database systems. It can also read and modify files.
-* Python can be used to handle big data and perform complex mathematics.
-* Python can be used for rapid prototyping, or for production-ready software development.
+-It is used for:
+  Web development (server-side)
+  Software development
+  Mathematics
+  System scripting
 
-### Why Python?
-* Python works on different platforms (Windows, Mac, Linux, Raspberry Pi, etc).
-* Python has a simple syntax similar to the English language.
-* Python has syntax that allows developers to write programs with fewer lines than some other programming languages.
-* Python runs on an interpreter system, meaning that code can be executed as soon as it is written. This means that prototyping can be very quick.
-* Python can be treated in a procedural way, an object-oriented way or a functional way.
+2. What can Python do?
 
-### Good to know
-* The most recent major version of Python is Python 3, which we shall be using in this tutorial.
-* In this tutorial Python will be written in a text editor. It is possible to write Python in an Integrated Development Environment, such as Thonny, Pycharm, Netbeans or Eclipse which are particularly useful when managing larger collections of Python files.
+ -Python can be used on a server to create web applications.
+ -Python can be used alongside software to create workflows.
+ -Python can connect to database systems. It can also read and modify files.
+ -Python can be used to handle big data and perform complex mathematics.
+ -Python can be used for rapid prototyping, or for production-ready software development.
 
-### Python Syntax compared to other programming languages
-* Python was designed for readability, and has some similarities to the English language with influence from mathematics.
-* Python uses new lines to complete a command, as opposed to other programming languages which often use semicolons or parentheses.
-* Python relies on indentation, using whitespace, to define scope; such as the scope of loops, functions and classes. Other programming languages often use curly-brackets for this purpose.`,
+3. Why Python?
+
+ -Python works on different platforms (Windows, Mac, Linux, Raspberry Pi, etc).
+ -Python has a simple syntax similar to the English language.
+ -Python has syntax that allows developers to write programs with fewer lines than some other programming languages.
+ -Python runs on an interpreter system, meaning that code can be executed as soon as it is written. This means that prototyping can be 
+  very quick.
+ -Python can be treated in a procedural way, an object-oriented way or a functional way.
+
+4. Good to know
+
+ -The most recent major version of Python is Python 3, which we shall be using in this tutorial.
+ -In this tutorial Python will be written in a text editor. It is possible to write Python in an Integrated Development Environment, such as 
+  Thonny, Pycharm, Netbeans or Eclipse which are particularly useful when managing larger collections of Python files.
+
+5. Python Syntax compared to other programming languages
+
+ -Python was designed for readability, and has some similarities to the English language with influence from mathematics.
+ -Python uses new lines to complete a command, as opposed to other programming languages which often use semicolons or parentheses.
+ -Python relies on indentation, using whitespace, to define scope; such as the scope of loops, functions and classes. Other programming languages often use curly-brackets for this purpose.`,
         syntax: 'print("Hello, World!")',
         example: 'print("Hello, World!")',
         output: "Hello, World!",
@@ -562,211 +569,27 @@ function generate10QuizQuestions(topicName, topicId) {
     ];
   }
 
-  // Fallback for other modules
-  return [
-    {
-      id: `q${topicId}-1`,
-      question: `What is the expected output of the following evaluation expression? \n\nprint(2 + 3 * 4)`,
-      options: ["20", "14", "24", "10"],
-      correctAnswer: 1,
-      explanation: "Multiplication is performed before addition because of standard arithmetic operator precedence in Python.",
-      difficulty: "Easy",
-      marks: 1,
-      relatedTopic: "Operator Precedence"
-    },
-    {
-      id: `q${topicId}-2`,
-      question: `True or False: Identifiers or variable names in Python are case-sensitive.`,
-      options: ["True", "False"],
-      correctAnswer: 0,
-      explanation: "Yes, Python is case-sensitive. Identifiers like 'age' and 'Age' represent two distinct variable bindings.",
-      difficulty: "Easy",
-      marks: 1,
-      relatedTopic: "Python Identifiers"
-    },
-    {
-      id: `q${topicId}-3`,
-      question: `Which validation rule is syntactically enforced to denote code blocks in Python?`,
-      options: [
-        "Curly braces enclosing statements",
-        "Semicolons ending every line",
-        "Whitespace indentation",
-        "Double spaces between characters"
-      ],
-      correctAnswer: 2,
-      explanation: "Python uses indentation to define code blocks (functions, loops, conditionals) instead of curly braces.",
-      difficulty: "Easy",
-      marks: 1,
-      relatedTopic: "Python Syntax"
-    },
-    {
-      id: `q${topicId}-4`,
-      question: `What error is raised if a variable is accessed before it has been declared or initialized?`,
-      options: [
-        "NameError",
-        "ValueError",
-        "TypeError",
-        "IndexError"
-      ],
-      correctAnswer: 0,
-      explanation: "Accessing an undefined variable name triggers a NameError at runtime.",
-      difficulty: "Medium",
-      marks: 2,
-      relatedTopic: "Variables"
-    },
-    {
-      id: `q${topicId}-5`,
-      question: `Which data type is categorized as mutable in Python?`,
-      options: [
-        "String",
-        "Tuple",
-        "List",
-        "Integer"
-      ],
-      correctAnswer: 2,
-      explanation: "Lists are mutable; their elements can be modified, appended, or sorted in-place. Strings and tuples are immutable.",
-      difficulty: "Medium",
-      marks: 2,
-      relatedTopic: "Data Types"
-    },
-    {
-      id: `q${topicId}-6`,
-      question: `What keyword is used to skip the current iteration in a loop and proceed to the next cycle?`,
-      options: [
-        "break",
-        "continue",
-        "pass",
-        "exit"
-      ],
-      correctAnswer: 1,
-      explanation: "The continue statement stops the current loop block iteration and skips to the next cycle check.",
-      difficulty: "Easy",
-      marks: 1,
-      relatedTopic: "Loops"
-    },
-    {
-      id: `q${topicId}-7`,
-      question: `What is the default return value of a function that does not contain an explicit return statement?`,
-      options: [
-        "0",
-        "False",
-        "None",
-        "Void"
-      ],
-      correctAnswer: 2,
-      explanation: "In Python, functions return None by default if no return expression is executed.",
-      difficulty: "Medium",
-      marks: 1,
-      relatedTopic: "Functions"
-    },
-    {
-      id: `q${topicId}-8`,
-      question: `In Object-Oriented Python, what parameter must every instance method take as its first argument?`,
-      options: [
-        "this",
-        "self",
-        "class",
-        "instance"
-      ],
-      correctAnswer: 1,
-      explanation: "The first argument of instance methods is conventionally named 'self', referring to the specific object instance.",
-      difficulty: "Easy",
-      marks: 1,
-      relatedTopic: "self Keyword"
-    },
-    {
-      id: `q${topicId}-9`,
-      question: `Which statement block compiles clean operations that must execute regardless of whether an exception was raised or handled?`,
-      options: [
-        "try",
-        "except",
-        "finally",
-        "else"
-      ],
-      correctAnswer: 2,
-      explanation: "The finally block executes unconditionally, making it ideal for clean-up tasks like closing file streams.",
-      difficulty: "Medium",
-      marks: 2,
-      relatedTopic: "Exception Handling"
-    },
-    {
-      id: `q${topicId}-10`,
-      question: `Which symbol represents the modulo division operator to find arithmetic remainders?`,
-      options: [
-        "/",
-        "%",
-        "//",
-        "&"
-      ],
-      correctAnswer: 1,
-      explanation: "The % operator calculates the remainder after integer division (e.g. 5 % 2 yields 1).",
-      difficulty: "Easy",
-      marks: 1,
-      relatedTopic: "Operators"
-    }
-  ];
+  // Fallback for other modules (empty quizzes)
+  return [];
 }
 
 // Compile all topics database table
 export const TOPICS_DB = TOPICS_STRUCT_RAW.map(t => {
   const mod = MODULES_DB.find(m => m.module_id === t.module_id);
+  const isIntro = t.name === "Introduction";
   const details = compileTopicContent(t.name, t.id, mod.module_name);
   
   // Dynamic metadata assignment
-  let difficulty = "Easy";
-  let estimatedTime = "15 mins";
-  let prerequisites = "None";
+  let difficulty = isIntro ? "Easy" : "";
+  let estimatedTime = isIntro ? "15 mins" : "";
+  let prerequisites = isIntro ? "None" : "";
   
-  if (t.module_id > 4 && t.module_id <= 10) {
-    difficulty = "Medium";
-    estimatedTime = "20 mins";
-    prerequisites = "Variables & Operators";
-  } else if (t.module_id > 10) {
-    difficulty = "Hard";
-    estimatedTime = "30 mins";
-    prerequisites = "Functions & OOP";
-  }
-
   // Prepopulate standard common mistakes based on modules or topics
-  let commonMistakes = [
-    "Syntax error: forgetting the colons (:) at the end of declaration lines.",
-    "Indentation error: mixing tabs and spaces in code blocks."
-  ];
-
-  if (mod.module_name.includes("String")) {
+  let commonMistakes = [];
+  if (isIntro) {
     commonMistakes = [
-      "Forgetting that strings are immutable and trying to modify index values directly (e.g. s[0] = 'a').",
-      "Off-by-one errors when slicing strings."
-    ];
-  } else if (mod.module_name.includes("List")) {
-    commonMistakes = [
-      "Accessing list index indices out of bounds (IndexError).",
-      "Confusing append() (adds element) with extend() (unpacks iterable)."
-    ];
-  } else if (mod.module_name.includes("Dict")) {
-    commonMistakes = [
-      "KeyError: accessing keys that do not exist in the dictionary without using get().",
-      "Confusing keys() and values() iteration outputs."
-    ];
-  } else if (mod.module_name.includes("Function")) {
-    commonMistakes = [
-      "Forgetting return statements when a function is expected to return values.",
-      "Accessing local variables outside their defined function scope."
-    ];
-  } else if (mod.module_name.includes("OOP")) {
-    commonMistakes = [
-      "Forgetting to pass self as the first parameter to constructor and instance methods.",
-      "Confusing class variables with instance variables."
-    ];
-  } else if (mod.module_name.includes("Exception")) {
-    commonMistakes = [
-      "Catching too broad exceptions (like except Exception) which hides programming bugs.",
-      "Forgetting that finally block will execute even if return statement is called in try."
-    ];
-  } else if (mod.module_name.includes("File")) {
-    commonMistakes = [
-      "Forgetting to close open file handlers (always use the 'with' statement instead!).",
-      "Incorrect directory path formats on different Operating Systems."
+      "Syntax error: forgetting the colons (:) at the end of declaration lines.",
+      "Indentation error: mixing tabs and spaces in code blocks."
     ];
   }
 
@@ -778,29 +601,29 @@ export const TOPICS_DB = TOPICS_STRUCT_RAW.map(t => {
     module_id: t.module_id,
     category: mod.module_name,
     name: t.name,
-    description: details.description,
-    learningObjectives: details.learningObjectives,
-    conceptExplanation: details.conceptExplanation,
-    syntax: details.syntax,
-    example: details.example,
-    output: details.output,
-    keyPoints: details.keyPoints,
-    practiceExercise: details.practiceExercise,
+    description: isIntro ? details.description : "",
+    learningObjectives: isIntro ? details.learningObjectives : [],
+    conceptExplanation: isIntro ? details.conceptExplanation : "",
+    syntax: isIntro ? details.syntax : "",
+    example: isIntro ? details.example : "",
+    output: isIntro ? details.output : "",
+    keyPoints: isIntro ? details.keyPoints : [],
+    practiceExercise: isIntro ? details.practiceExercise : "",
     commonMistakes,
     difficulty,
     estimatedTime,
     prerequisites,
-    videoStatus: "Coming Soon", 
-    materials: [
+    videoStatus: isIntro ? "Coming Soon" : "", 
+    materials: isIntro ? [
       { id: `m${t.id}-1`, type: "pdf", title: cleanPdfName, size: "1.2 MB" },
       { id: `m${t.id}-2`, type: "video", title: `${t.name} Video Lesson` } 
-    ],
-    assignment: {
+    ] : [],
+    assignment: isIntro ? {
       id: `a${t.id}`,
       title: `Assignment: Practice on ${t.name}`,
       description: `Complete the practical exercises evaluating ${t.name}. Submit your python code file (.py) below.`,
       dueDate: "2026-12-31"
-    }
+    } : null
   };
 });
 
@@ -818,12 +641,12 @@ export const QUIZZES_DB = MODULES_DB.map(m => {
 export const INITIAL_COURSE = {
   id: "py-101",
   title: "Python Programming",
-  instructor: "Dr. Alok Verma",
-  duration: "8 Weeks",
   description: "A complete, comprehensive pathway to master Python programming from basics to advanced libraries.",
   topics: TOPICS_DB,
   quizzes: QUIZZES_DB
 };
+
+export const INITIAL_COURSE_SOURCE_VERSION = JSON.stringify(INITIAL_COURSE);
 
 // INITIAL STUDENT STATE (Mocked Database)
 export const INITIAL_STUDENT_STATE = {
@@ -905,8 +728,9 @@ export function analyzePerformance(state, course) {
       status = "Completed (No Quiz)";
       recommendations = ["Take Module Quiz to evaluate your learning performance."];
     } else {
+      const pdfMat = topic.materials ? topic.materials.find(m => m.type === 'pdf') : null;
       recommendations = [
-        "Read notes: '" + topic.materials.find(m => m.type === 'pdf').title + "'.",
+        pdfMat ? "Read notes: '" + pdfMat.title + "'." : "Read reference notes for this topic.",
         "Mark topic as completed after study.",
         "Take Module Quiz to verify your understanding."
       ];

@@ -1,13 +1,43 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, BarChart3, User, Award, LogOut } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  BookOpen, 
+  BarChart3, 
+  User, 
+  Award, 
+  LogOut, 
+  HelpCircle, 
+  FileText, 
+  AlertTriangle, 
+  Download,
+  Sparkles,
+  Layers,
+  Settings,
+  Database
+} from 'lucide-react';
 
-export default function Sidebar({ activePage, setActivePage, studentName, onLogout }) {
-  const menuItems = [
+export default function Sidebar({ activePage, setActivePage, studentName, userRole = 'Student', onLogout, onOpenProfile }) {
+  const isTeacher = userRole === 'Teacher';
+
+  const studentMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'courses', label: 'My Courses', icon: BookOpen },
     { id: 'analytics', label: 'Analytics & Advisor', icon: BarChart3 },
     { id: 'profile', label: 'My Profile', icon: User },
   ];
+
+  const teacherMenuItems = [
+    { id: 'teacher_dashboard', label: 'Teacher Dashboard', icon: LayoutDashboard },
+    { id: 'teacher_courses', label: 'Create & Manage Courses', icon: BookOpen },
+    { id: 'teacher_quizzes', label: 'Quiz Management', icon: HelpCircle },
+    { id: 'teacher_assignments', label: 'Assignments', icon: FileText },
+    { id: 'teacher_analytics', label: 'Student Analytics', icon: BarChart3 },
+    { id: 'teacher_interventions', label: 'Interventions Panel', icon: AlertTriangle },
+    { id: 'teacher_reports', label: 'Reports & Export', icon: Download },
+    { id: 'teacher_profile', label: 'Profile & Settings', icon: Settings, isAction: true },
+  ];
+
+  const menuItems = isTeacher ? teacherMenuItems : studentMenuItems;
 
   return (
     <aside style={styles.sidebar}>
@@ -18,7 +48,9 @@ export default function Sidebar({ activePage, setActivePage, studentName, onLogo
         </div>
         <div>
           <h1 style={styles.brandTitle}>EduInsight</h1>
-          <span style={styles.brandSubtitle}>Student Workspace</span>
+          <span style={styles.brandSubtitle}>
+            {isTeacher ? 'Faculty Workspace' : 'Student Workspace'}
+          </span>
         </div>
       </div>
 
@@ -30,20 +62,26 @@ export default function Sidebar({ activePage, setActivePage, studentName, onLogo
           return (
             <button
               key={item.id}
-              onClick={() => setActivePage(item.id)}
+              onClick={() => {
+                if (item.isAction && onOpenProfile) {
+                  onOpenProfile();
+                } else {
+                  setActivePage(item.id);
+                }
+              }}
               style={{
                 ...styles.navItem,
                 ...(isActive ? styles.navItemActive : {}),
               }}
             >
-              <Icon size={20} style={isActive ? styles.iconActive : styles.icon} />
-              <span>{item.label}</span>
+              <Icon size={18} style={isActive ? styles.iconActive : styles.icon} />
+              <span style={{ fontSize: '0.88rem' }}>{item.label}</span>
               {isActive && <div style={styles.activeIndicator} />}
             </button>
           );
         })}
 
-        {/* Dynamic Sign Out button */}
+        {/* Sign Out button */}
         <button
           onClick={onLogout}
           style={{
@@ -54,16 +92,25 @@ export default function Sidebar({ activePage, setActivePage, studentName, onLogo
             border: '1px solid var(--danger-border)',
           }}
         >
-          <LogOut size={20} style={{ color: 'var(--danger)' }} />
-          <span>Sign Out</span>
+          <LogOut size={18} style={{ color: 'var(--danger)' }} />
+          <span style={{ fontSize: '0.88rem' }}>Sign Out</span>
         </button>
       </nav>
 
       {/* Sidebar Footer User Card */}
-      <div style={styles.sidebarFooter}>
+      <div 
+        style={{
+          ...styles.sidebarFooter,
+          cursor: isTeacher && onOpenProfile ? 'pointer' : 'default'
+        }}
+        onClick={isTeacher && onOpenProfile ? onOpenProfile : undefined}
+        title={isTeacher && onOpenProfile ? "Open Profile & Settings" : undefined}
+      >
         <div style={styles.footerInner}>
           <div style={styles.statusBadge}>Online</div>
-          <div style={styles.userRole}>Portal Student</div>
+          <div style={styles.userRole}>
+            {isTeacher ? (studentName || 'Faculty Instructor') : 'Portal Student'}
+          </div>
         </div>
       </div>
     </aside>
@@ -82,13 +129,13 @@ const styles = {
     left: 0,
     top: 0,
     zIndex: 10,
-    padding: '2rem 1rem 1.5rem 1rem',
+    padding: '1.5rem 1rem 1.25rem 1rem',
   },
   brandContainer: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    marginBottom: '2.5rem',
+    marginBottom: '1.75rem',
     padding: '0 0.5rem',
   },
   logoIcon: {
@@ -118,27 +165,28 @@ const styles = {
   navMenu: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '6px',
     flexGrow: 1,
+    overflowY: 'auto',
   },
   navItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
     width: '100%',
-    padding: '12px 16px',
+    padding: '10px 14px',
     borderRadius: '10px',
     color: 'var(--text-secondary)',
     fontWeight: '500',
-    fontSize: '0.95rem',
     textAlign: 'left',
     transition: 'all 0.2s ease',
     position: 'relative',
   },
   navItemActive: {
-    color: 'var(--text-primary)',
+    color: 'var(--primary)',
     backgroundColor: 'rgba(var(--primary-rgb), 0.08)',
-    border: '1px solid rgba(var(--primary-rgb), 0.15)',
+    border: '1px solid rgba(var(--primary-rgb), 0.18)',
+    fontWeight: '600',
   },
   icon: {
     color: 'var(--text-muted)',
@@ -159,7 +207,7 @@ const styles = {
   },
   sidebarFooter: {
     borderTop: '1px solid var(--border-color)',
-    paddingTop: '1.25rem',
+    paddingTop: '1rem',
     marginTop: 'auto',
   },
   footerInner: {

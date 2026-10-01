@@ -3,6 +3,7 @@ import { Bell, Clock, Play, Pause, Square, Check, Sun, Moon } from 'lucide-react
 
 export default function Header({ 
   student, 
+  userRole = 'Student',
   studyTimer, 
   startTimer, 
   pauseTimer, 
@@ -10,53 +11,62 @@ export default function Header({
   notifications, 
   markNotificationsAsRead,
   themeMode,
-  onToggleTheme
+  onToggleTheme,
+  onOpenProfile
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const isTeacher = userRole === 'Teacher' || student?.role === 'Teacher';
+  const displayName = student?.profile?.name || student?.name || (isTeacher ? 'Instructor' : 'Student');
 
   const formatTime = (secs) => {
+    if (!secs) return "00:00:00";
     const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
     const h = Math.floor(secs / 3600).toString().padStart(2, '0');
     return `${h}:${m}:${s}`;
   };
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications ? notifications.filter(n => n.unread).length : 0;
 
   return (
     <header style={styles.header}>
       {/* Page Context/Greeting */}
       <div>
-        <h2 style={styles.welcomeText}>Hello, {student.profile.name}! 👋</h2>
-        <p style={styles.subtext}>Let's check your learning progress today.</p>
+        <h2 style={styles.welcomeText}>Hello, {displayName}! 👋</h2>
+        <p style={styles.subtext}>
+          {isTeacher 
+            ? "Faculty instruction & academic performance management portal."
+            : "Let's check your learning progress today."}
+        </p>
       </div>
 
       {/* Global Controls & Profile */}
       <div style={styles.rightSection}>
         
-        {/* Quick Study Session Controls */}
-        <div style={{
-          ...styles.timerContainer,
-          backgroundColor: studyTimer.isActive ? 'rgba(var(--primary-rgb), 0.08)' : 'rgba(255,255,255,0.02)',
-          borderColor: studyTimer.isActive ? 'rgba(var(--primary-rgb), 0.25)' : 'var(--border-color)',
-        }}>
-          <div style={styles.timerIconWrapper}>
-            <Clock size={16} color={studyTimer.isActive ? 'var(--primary)' : 'var(--text-muted)'} />
-          </div>
-          
-          <div style={styles.timerInfo}>
-            <span style={styles.timerLabel}>
-              {studyTimer.isActive ? (studyTimer.isPaused ? 'Study Paused' : 'Studying...') : 'Study Session'}
-            </span>
-            <span style={{
-              ...styles.timerValue,
-              color: studyTimer.isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-            }}>
-              {formatTime(studyTimer.seconds)}
-            </span>
-          </div>
+        {/* Quick Study Session Controls for Students */}
+        {!isTeacher && studyTimer && (
+          <div style={{
+            ...styles.timerContainer,
+            backgroundColor: studyTimer.isActive ? 'rgba(var(--primary-rgb), 0.08)' : 'rgba(255,255,255,0.02)',
+            borderColor: studyTimer.isActive ? 'rgba(var(--primary-rgb), 0.25)' : 'var(--border-color)',
+          }}>
+            <div style={styles.timerIconWrapper}>
+              <Clock size={16} color={studyTimer.isActive ? 'var(--primary)' : 'var(--text-muted)'} />
+            </div>
+            
+            <div style={styles.timerInfo}>
+              <span style={styles.timerLabel}>
+                {studyTimer.isActive ? (studyTimer.isPaused ? 'Study Paused' : 'Studying...') : 'Study Session'}
+              </span>
+              <span style={{
+                ...styles.timerValue,
+                color: studyTimer.isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+              }}>
+                {formatTime(studyTimer.seconds)}
+              </span>
+            </div>
 
-          <div style={styles.timerControls}>
+            <div style={styles.timerControls}>
             {!studyTimer.isActive ? (
               <button 
                 onClick={startTimer} 
@@ -95,14 +105,12 @@ export default function Header({
             )}
           </div>
         </div>
+        )}
 
         {/* Notifications System */}
         <div style={styles.notificationWrapper}>
           <button 
-            onClick={() => {
-              setShowNotifications(!showNotifications);
-              if (unreadCount > 0) markNotificationsAsRead();
-            }} 
+            onClick={() => setShowNotifications(!showNotifications)} 
             style={{
               ...styles.notificationBtn,
               backgroundColor: showNotifications ? 'rgba(var(--primary-rgb), 0.1)' : 'rgba(255,255,255,0.02)'
@@ -117,7 +125,19 @@ export default function Header({
             <div style={styles.dropdown}>
               <div style={styles.dropdownHeader}>
                 <span style={styles.dropdownTitle}>Notifications</span>
-                {unreadCount > 0 && <span style={styles.newTag}>{unreadCount} new</span>}
+                {unreadCount > 0 ? (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markNotificationsAsRead();
+                    }}
+                    style={styles.markReadBtn}
+                  >
+                    <Check size={12} style={{ marginRight: '4px' }} /> Mark all as read
+                  </button>
+                ) : (
+                  <span style={styles.allReadText}>All read</span>
+                )}
               </div>
               <div style={styles.dropdownList}>
                 {notifications.length === 0 ? (
@@ -155,10 +175,22 @@ export default function Header({
         <div style={styles.divider} />
 
         {/* Profile Card */}
-        <div style={styles.profileCard}>
+        <div 
+          onClick={onOpenProfile}
+          style={{
+            ...styles.profileCard,
+            cursor: onOpenProfile ? 'pointer' : 'default',
+            padding: '4px 10px',
+            borderRadius: '8px',
+            border: onOpenProfile ? '1px solid var(--border-color)' : '1px solid transparent',
+            backgroundColor: onOpenProfile ? 'rgba(255,255,255,0.02)' : 'transparent',
+            transition: 'all 0.15s ease'
+          }}
+          data-tooltip={onOpenProfile ? "Open Profile & Settings" : undefined}
+        >
           <div style={styles.profileDetails}>
-            <span style={styles.profileName}>{student.profile.name}</span>
-            <span style={styles.profileEmail}>{student.profile.email}</span>
+            <span style={styles.profileName}>{displayName}</span>
+            <span style={styles.profileEmail}>{student?.profile?.email || student?.email || ''}</span>
           </div>
         </div>
 
@@ -312,6 +344,23 @@ const styles = {
     padding: '1px 6px',
     borderRadius: '8px',
     fontWeight: '600',
+  },
+  markReadBtn: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: 'var(--primary)',
+    fontSize: '0.7rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '2px 6px',
+    borderRadius: '4px',
+  },
+  allReadText: {
+    fontSize: '0.7rem',
+    color: 'var(--text-secondary)',
+    fontWeight: '500',
   },
   dropdownList: {
     maxHeight: '240px',

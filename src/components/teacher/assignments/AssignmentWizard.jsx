@@ -108,11 +108,8 @@ export default function AssignmentWizard({
                 </select>
               </div>
               <div style={styles.inputGroup}>
-                <label style={styles.label}>Topic</label>
-                <select style={styles.select} value={form.topic_id} onChange={e => setForm({...form, topic_id: e.target.value})}>
-                  <option value="">-- General --</option>
-                  {topics.map(t => <option key={t.id || t.topic_id} value={t.id || t.topic_id}>{t.name || t.topic_name}</option>)}
-                </select>
+                <label style={styles.label}>Topic Name</label>
+                <input style={styles.input} type="text" value={form.topic_name || ''} onChange={e => setForm({...form, topic_name: e.target.value})} placeholder="e.g. Variables and Data Types" />
               </div>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Category</label>
@@ -141,11 +138,36 @@ export default function AssignmentWizard({
               <label style={styles.label}>Detailed Instructions *</label>
               <textarea style={{...styles.textarea, minHeight: '180px'}} value={form.instructions} onChange={e => setForm({...form, instructions: e.target.value})} placeholder="Enter detailed guidelines, steps, and expectations here..." />
             </div>
-            {/* Minimal attachment stub - full implementation requires file upload APIs */}
-            <div style={styles.attachmentBox}>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                <em>Note: File attachments for instructions will be supported in the next backend update.</em>
-              </p>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Reference Material (PDF, Doc, etc.)</label>
+              <input 
+                type="file" 
+                style={styles.input} 
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setForm({...form, reference_file: reader.result});
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }} 
+              />
+              {form.reference_file && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                  <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--success, green)' }}>✓ File attached</p>
+                  <a 
+                    href={form.reference_file} 
+                    download="assignment_reference_file" 
+                    style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'underline' }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View / Download File
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         )}

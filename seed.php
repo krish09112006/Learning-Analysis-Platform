@@ -1,5 +1,7 @@
 <?php
-require_once "C:/xampp/htdocs/learning-analytics-backend/config/database.php"; 
+require_once __DIR__ . "/backend/api/config.php";
+
+$conn = $pdo;
 
 $stmt = $conn->query("SELECT course_id FROM courses LIMIT 1");
 $course = $stmt->fetch();
@@ -15,11 +17,12 @@ $student1_id = $students[0]["user_id"] ?? 1;
 $student2_id = $students[1]["user_id"] ?? 2;
 
 $conn->exec("INSERT INTO assignments (course_id, topic_id, title, description, instructions, due_date, max_marks) VALUES 
-($course_id, $topic_id, 'Assignment 1: Fundamentals', 'Implement basic functions and data structures.', 'Write the code in Python and submit the .py file.', DATE_ADD(NOW(), INTERVAL 7 DAY), 100),
-($course_id, $topic_id, 'Assignment 2: Advanced Algorithms', 'Design and implement a sorting algorithm.', 'Submit a written report along with your code.', DATE_ADD(NOW(), INTERVAL 14 DAY), 50)");
+($course_id, $topic_id, 'Assignment 1: Fundamentals', 'Implement basic functions and data structures.', 'Write the code in Python and submit the .py file.', NOW() + INTERVAL '7 days', 100),
+($course_id, $topic_id, 'Assignment 2: Advanced Algorithms', 'Design and implement a sorting algorithm.', 'Submit a written report along with your code.', NOW() + INTERVAL '14 days', 50)");
 
-$assignment_id = $conn->lastInsertId();
-$assignment1_id = $assignment_id - 1;
+$assignment1_id = $conn->query("SELECT currval(pg_get_serial_sequence('assignments', 'assignment_id'))")->fetchColumn();
+// Assuming two rows inserted, we want the first one
+$assignment1_id = $assignment1_id - 1;
 
 $conn->exec("INSERT INTO assignment_submissions (assignment_id, student_id, file_name, submission_text, status, submitted_at) VALUES 
 ($assignment1_id, $student1_id, 'main.py', 'Here is my submission.', 'Submitted', NOW()),

@@ -1039,11 +1039,8 @@ export default function TeacherQuizzes({ initialTab = 'dashboard' }) {
             </button>
           </div>
 
-          <button onClick={() => setShowMethodModal(true)} style={styles.primaryBtn}>
+          <button onClick={handleStartSmartBuilder} style={styles.primaryBtn}>
             <Plus size={16} /> Create Quiz
-          </button>
-          <button onClick={handleStartSmartBuilder} style={styles.smartBtn}>
-            <Sparkles size={16} /> Smart Quiz Builder
           </button>
         </div>
       </div>
@@ -1847,7 +1844,24 @@ export default function TeacherQuizzes({ initialTab = 'dashboard' }) {
           )}
 
           {/* STEP 2: 3-PANEL VISUAL QUESTION EDITOR (Section 17 Layout) */}
-          {editorStep === 2 && activeQuestion && (
+          {editorStep === 2 && quizForm.questions.length === 0 && (
+            <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <HelpCircle size={48} color="#cbd5e1" style={{ margin: '0 auto' }} />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '8px' }}>No Questions Yet</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Your quiz currently has no questions. Add one manually or import from the question bank.</p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button onClick={handleAddQuestion} style={styles.primaryBtn}>
+                  <Plus size={16} /> Add Question
+                </button>
+                <button onClick={() => setShowBankImportModal(true)} style={styles.secondaryBtn}>
+                  <Database size={16} /> Import from Bank
+                </button>
+              </div>
+            </div>
+          )}
+          {editorStep === 2 && quizForm.questions.length > 0 && activeQuestion && (
             <div style={styles.threePanelGrid}>
               {/* LEFT PANEL: Question Navigation & List */}
               <div className="glass-card" style={styles.leftPanel}>

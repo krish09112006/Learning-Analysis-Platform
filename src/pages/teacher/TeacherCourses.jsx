@@ -29,6 +29,7 @@ import {
   Sliders
 } from 'lucide-react';
 import teacherService from '../../services/teacherService';
+import CourseCreationWizard from '../../components/teacher/CourseCreationWizard';
 
 const EMPTY_COURSE_DRAFT = {
   id: null,
@@ -170,88 +171,77 @@ export default function TeacherCourses({ teacher, currentUser }) {
   // =====================================================
   // ENTRY & MODE SWITCHING HANDLERS
   // =====================================================
-  const startManualCreation = () => {
+  const startCourseWizard = () => {
     setErrorMsg('');
     setSuccessMsg('');
     setIsJustGeneratedBanner(false);
-    setCourseDraft({
-      ...JSON.parse(JSON.stringify(EMPTY_COURSE_DRAFT)),
-      creation_method: 'manual',
-      status: 'draft'
-    });
-    setSelectedNode({ type: 'course' });
-    setExpandedModules({ 0: true });
-    setViewMode('manual_step1');
+    setViewMode('wizard');
   };
 
-  const startSmartBuilder = () => {
-    setErrorMsg('');
-    setSuccessMsg('');
-    setIsJustGeneratedBanner(false);
-    setViewMode('smart_input');
-  };
+  const handleWizardComplete = async (wizardData, isSmart) => {
+    if (isSmart) {
+      // Create smart input format from wizardData
+      const mappedSmartInput = {
+        course_name: wizardData.courseTitle,
+        description: wizardData.smartDescription || wizardData.primaryObjective,
+        category: wizardData.courseCategory,
+        difficulty: wizardData.difficulty,
+        target_audience: wizardData.targetAudience === 'Custom' ? wizardData.customAudience : wizardData.targetAudience,
+        duration: `${wizardData.durationValue} ${wizardData.duration}`,
+        prerequisites: wizardData.prerequisites.join(', '),
+        main_topics: wizardData.smartTopics.length > 0 ? wizardData.smartTopics.join('\n') : wizardData.moduleTopicsText,
+        important_points: '',
+        learning_goals: wizardData.learningOutcomes.join('\n')
+      };
+      setSmartInput(mappedSmartInput);
+      
+      // We directly simulate generation here so it transitions to builder properly
+      setGeneratingCourse(true);
+      try {
+        const res = await teacherService.generateCourseDraft(mappedSmartInput);
+        if (!res || !res.draft || !Array.isArray(res.draft.modules)) {
+          throw new Error('Unable to generate the course draft. Please try again.');
+        }
+        const generated = {
+          ...res.draft,
+          id: null,
+          status: 'draft',
+          creation_method: 'smart',
+        };
+        setCourseDraft(generated);
+        const exp = {};
+        (generated.modules || []).forEach((_, idx) => { exp[idx] = true; });
+        setExpandedModules(exp);
+        setSelectedNode({ type: 'course' });
+        setIsJustGeneratedBanner(true);
+        setViewMode('builder');
+        showToastSuccess('Course draft is ready for review. Inspect and edit below, then click Save Draft.');
+      } catch (err) {
+        setErrorMsg(err.message || 'Unable to generate the course draft. Please try again.');
+        setViewMode('list');
+      } finally {
+        setGeneratingCourse(false);
+      }
 
-  const switchToSmartBuilder = () => {
-    const draft = courseDraft;
-    const topicNames = (draft.modules || [])
-      .flatMap((module) => module.topics || [])
-      .map((topic) => topic.topic_name)
-      .filter(Boolean);
-
-    setSmartInput((previous) => ({
-      ...previous,
-      course_name: draft.course_name || previous.course_name,
-      description: draft.description || draft.short_description || previous.description,
-      category: draft.category || previous.category,
-      difficulty: draft.difficulty || previous.difficulty,
-      target_audience: draft.target_audience || previous.target_audience,
-      duration: draft.duration || previous.duration,
-      prerequisites: draft.prerequisites || previous.prerequisites,
-      main_topics: topicNames.length > 0 ? topicNames.join('\n') : previous.main_topics,
-      learning_goals: (draft.learning_objectives || []).length > 0
-        ? draft.learning_objectives.join('\n')
-        : previous.learning_goals
-    }));
-    setErrorMsg('');
-    setSuccessMsg('Your current course details were carried into Smart Course Builder.');
-    setViewMode('smart_input');
-  };
-
-  const switchToManualCreation = () => {
-    setCourseDraft((previous) => ({
-      ...previous,
-      course_name: smartInput.course_name || previous.course_name,
-      description: smartInput.description || previous.description,
-      short_description: smartInput.description || previous.short_description,
-      category: smartInput.category || previous.category,
-      difficulty: smartInput.difficulty || previous.difficulty,
-      target_audience: smartInput.target_audience || previous.target_audience,
-      duration: smartInput.duration || previous.duration,
-      prerequisites: smartInput.prerequisites || previous.prerequisites,
-      learning_objectives: smartInput.learning_goals
-        ? smartInput.learning_goals.split(/[\n,]+/).map((goal) => goal.trim()).filter(Boolean)
-        : previous.learning_objectives,
-      creation_method: 'manual',
-      status: 'draft'
-    }));
-    setErrorMsg('');
-    setSuccessMsg('Your Smart Course Builder inputs were carried into Manual Course Creation.');
-    setViewMode('manual_step1');
-  };
-
-  const fillPythonPreset = () => {
-    setSmartInput({
-      course_name: 'Python Programming',
-      description: 'Comprehensive hands-on introduction to Python programming, data structures, control flow, and modular software design.',
-      category: 'Programming',
-      difficulty: 'Beginner',
-      target_audience: 'First-year Software Engineering students',
-      duration: '6 Weeks',
-      prerequisites: 'Basic computer literacy',
-      main_topics: 'Variables\nData Types\nConditions\nLoops\nFunctions\nOOP',
-      important_points: 'Practical examples\nBeginner friendly\nProgramming exercises',
-      learning_goals: 'Write clean Python scripts\nSolve algorithmic challenges using loops and functions\nDesign object-oriented classes'
-    });
+    } else {
+      // Manual mapping
+      setCourseDraft({
+        ...JSON.parse(JSON.stringify(EMPTY_COURSE_DRAFT)),
+        course_name: wizardData.courseTitle,
+        course_code: wizardData.courseCode,
+        category: wizardData.courseCategory,
+        difficulty: wizardData.difficulty,
+        duration: `${wizardData.durationValue} ${wizardData.duration}`,
+        target_audience: wizardData.targetAudience === 'Custom' ? wizardData.customAudience : wizardData.targetAudience,
+        prerequisites: wizardData.prerequisites.join(', '),
+        learning_objectives: wizardData.learningOutcomes,
+        creation_method: 'manual',
+        status: 'draft'
+      });
+      setSelectedNode({ type: 'course' });
+      setExpandedModules({ 0: true });
+      setViewMode('builder');
+    }
   };
 
   const openExistingCourseInBuilder = async (courseSummary) => {
@@ -922,13 +912,13 @@ export default function TeacherCourses({ teacher, currentUser }) {
       {/* ===============================================================
           VIEW 1 & ENTRY: COURSE CREATION ENTRY + MY COURSES CATALOG
       =============================================================== */}
-      {(viewMode === 'list' || viewMode === 'entry') && (
+      {(viewMode === 'list') && (
         <>
           <div style={styles.topHeaderRow}>
             <div>
               <h2 style={styles.pageTitle}>Create Course & Curriculum Management</h2>
               <p style={styles.pageSubtitle}>
-                Build structured courses manually or use the Smart Course Builder to prepare editable course drafts.
+                Use the Smart Course Builder to prepare editable course drafts automatically.
               </p>
             </div>
 
@@ -938,68 +928,12 @@ export default function TeacherCourses({ teacher, currentUser }) {
                 <span>Refresh</span>
               </button>
               <button
-                onClick={() => setViewMode(viewMode === 'entry' ? 'list' : 'entry')}
+                onClick={startCourseWizard}
                 style={styles.primaryBtn}
               >
                 <Plus size={16} />
                 <span>Create Course</span>
               </button>
-            </div>
-          </div>
-
-          {/* 1. COURSE CREATION ENTRY — TWO CHOICES */}
-          <div style={styles.entryChoicesGrid}>
-            {/* Choice 1: Manual Course Creation */}
-            <div style={styles.entryChoiceCard} onClick={startManualCreation}>
-              <div style={styles.entryIconBoxManual}>
-                <Layers size={26} color="var(--primary)" />
-              </div>
-              <div style={styles.entryCardContent}>
-                <div style={styles.entryBadgeRow}>
-                  <span style={styles.methodBadgeManual}>Full Manual Control</span>
-                </div>
-                <h3 style={styles.entryCardTitle}>Manual Course Creation</h3>
-                <p style={styles.entryCardDesc}>
-                  Create the complete course structure yourself. Define course metadata, learning objectives, modules, and topics step by step.
-                </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startManualCreation();
-                  }}
-                  style={styles.entryActionBtnManual}
-                >
-                  <span>Start Manual Course Creation</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Choice 2: Smart Course Builder */}
-            <div style={styles.entryChoiceCardSmart} onClick={startSmartBuilder}>
-              <div style={styles.entryIconBoxSmart}>
-                <Sparkles size={26} color="#38bdf8" />
-              </div>
-              <div style={styles.entryCardContent}>
-                <div style={styles.entryBadgeRow}>
-                  <span style={styles.methodBadgeSmart}>AI-Assisted Course Builder</span>
-                </div>
-                <h3 style={styles.entryCardTitle}>Smart Course Builder</h3>
-                <p style={styles.entryCardDesc}>
-                  Enter basic course information and let the system prepare a complete course structure draft that you can review, regenerate by section, and edit before saving.
-                </p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startSmartBuilder();
-                  }}
-                  style={styles.entryActionBtnSmart}
-                >
-                  <Sparkles size={16} />
-                  <span>Launch Smart Course Builder</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
             </div>
           </div>
 
@@ -1151,6 +1085,16 @@ export default function TeacherCourses({ teacher, currentUser }) {
       )}
 
       {/* ===============================================================
+          VIEW 1.5: COURSE CREATION WIZARD
+      =============================================================== */}
+      {viewMode === 'wizard' && (
+        <CourseCreationWizard 
+          onComplete={handleWizardComplete} 
+          onCancel={() => setViewMode('list')} 
+        />
+      )}
+
+      {/* ===============================================================
           VIEW 2: MANUAL COURSE CREATION — STEP 1 (BASIC INFORMATION)
       =============================================================== */}
       {viewMode === 'manual_step1' && (
@@ -1170,7 +1114,7 @@ export default function TeacherCourses({ teacher, currentUser }) {
                 <Layers size={15} />
                 <span>Manual Course Creation</span>
               </button>
-              <button onClick={switchToSmartBuilder} style={styles.switcherBtn}>
+              <button onClick={() => setViewMode('smart_wizard')} style={styles.switcherBtn}>
                 <Sparkles size={15} />
                 <span>Switch to Smart Course Builder</span>
               </button>
@@ -1606,7 +1550,7 @@ export default function TeacherCourses({ teacher, currentUser }) {
               </button>
 
               <button
-                onClick={switchToSmartBuilder}
+                onClick={() => setViewMode('smart_wizard')}
                 style={styles.regenOutlineBtn}
                 title="Continue this draft with Smart Course Builder"
               >
@@ -1814,11 +1758,45 @@ export default function TeacherCourses({ teacher, currentUser }) {
                             <Plus size={13} />
                             <span>Add Topic</span>
                           </button>
+                          
+                          {mod.quiz && (
+                            <div
+                              style={{
+                                ...styles.treeTopicRow,
+                                marginTop: '8px',
+                                color: '#8b5cf6',
+                                cursor: 'default',
+                                backgroundColor: 'rgba(139, 92, 246, 0.05)'
+                              }}
+                              title="This quiz is auto-generated and will be saved with the course."
+                            >
+                              <span style={styles.treeBranchSymbol}>└─</span>
+                              <span style={styles.treeTopicName}>
+                                📝 {mod.quiz.title || `Module ${mIdx + 1} Assessment`}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                   );
                 })}
+                
+                {courseDraft.finalAssessment && (
+                  <div style={{
+                    ...styles.treeModuleRow, 
+                    marginTop: '12px', 
+                    backgroundColor: '#fef3c7', 
+                    borderColor: '#fde68a',
+                    color: '#b45309',
+                    cursor: 'default'
+                  }} title="Comprehensive final assessment auto-generated for the course.">
+                     <span style={{marginRight: '6px'}}>🏆</span> 
+                     <div style={{flexGrow: 1, ...styles.treeModName}}>
+                       {courseDraft.finalAssessment.title || "Final Course Assessment"}
+                     </div>
+                  </div>
+                )}
               </div>
             </div>
 

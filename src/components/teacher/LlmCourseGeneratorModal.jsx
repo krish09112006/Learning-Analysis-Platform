@@ -522,7 +522,7 @@ export default function LlmCourseGeneratorModal({
 
       // Attempt to save to backend API if active
       try {
-        await fetch('http://localhost/learning-analytics-backend/api/courses.php', {
+        await fetch('http://localhost:8000/backend/api/courses.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

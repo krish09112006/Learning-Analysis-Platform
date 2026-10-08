@@ -16,24 +16,7 @@ export default function AuthPage({ onAuthSuccess }) {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Local storage mock users DB
-  const getMockUsersDB = () => {
-    const db = localStorage.getItem('lap_users_db');
-    if (db) return JSON.parse(db);
-    
-    // Seed default credentials
-    const defaultDB = [
-      {
-        name: "Krish Patel",
-        email: "krish.patel@college.edu",
-        password: "password123",
-        role: "Student",
-        enrolledCourses: ["py-101"] // Default pre-enrolled for demo
-      }
-    ];
-    localStorage.setItem('lap_users_db', JSON.stringify(defaultDB));
-    return defaultDB;
-  };
-
+  
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -45,111 +28,7 @@ export default function AuthPage({ onAuthSuccess }) {
         onAuthSuccess(user);
       }, 1200);
     } catch (err) {
-      console.warn("Backend API offline, falling back to mock login verification:", err);
-      // Fallback check against mock local storage DB
-      const db = getMockUsersDB();
-      const matchedUser = db.find(u => u.email.toLowerCase() === email.toLowerCase());
-      
-      if (!matchedUser) {
-        setError('No account found with this email. Please register first.');
-        return;
-      }
-      
-      if (matchedUser.password !== password) {
-        setError('Incorrect password. Please try again.');
-        return;
-      }
-
-      setSuccessMsg('Authentication successful (Offline Mode)! Opening workspace...');
-      setTimeout(() => {
-        onAuthSuccess({
-          user_id: 1, // default mock student user_id
-          name: matchedUser.name,
-          email: matchedUser.email,
-          role: matchedUser.role || 'Student',
-          enrolledCourses: matchedUser.enrolledCourses || ["py-101"]
-        });
-      }, 1200);
-    }
-  };
-
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    // Full name validation (no numbers, must contain a space)
-    if (/\d/.test(name)) {
-      setError(`Full ${roleLabel} Name must not contain numbers.`);
-      return;
-    }
-    if (!name.trim().includes(' ')) {
-      setError('Please enter your full name (first name and last name separated by a space).');
-      return;
-    }
-
-    // Single letter name validation
-    const nameParts = name.trim().split(/\s+/);
-    if (nameParts.some(part => part.length < 2)) {
-      setError('Each part of the name must be at least 2 characters long (no single letters).');
-      return;
-    }
-    
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return;
-    }
-
-    // Numbers only password validation
-    if (/^\d+$/.test(password)) {
-      setError('Password cannot consist of numbers only. Please include at least one letter or symbol.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match. Please verify.');
-      return;
-    }
-
-    try {
-      await authService.register(name, email, password, role);
-      setSuccessMsg(`Registration successful as ${role}! Please sign in using your credentials.`);
-      
-      // Switch to login tab and pre-fill fields after a brief delay
-      setTimeout(() => {
-        setActiveTab('login');
-        setSuccessMsg('');
-        setError('');
-        setPassword('');
-        setConfirmPassword('');
-      }, 2200);
-    } catch (err) {
-      console.warn("Backend API offline, saving credentials to mock database locally:", err);
-      
-      const db = getMockUsersDB();
-      const alreadyExists = db.some(u => u.email.toLowerCase() === email.toLowerCase());
-      if (alreadyExists) {
-        setError('An account with this email is already registered. Try logging in.');
-        return;
-      }
-
-      const newUser = {
-        name,
-        email,
-        password,
-        role,
-        enrolledCourses: ["py-101"] // default enroll in mock mode
-      };
-      db.push(newUser);
-      localStorage.setItem('lap_users_db', JSON.stringify(db));
-
-      setSuccessMsg('Registration successful (Mock Mode)! Please sign in.');
-      setTimeout(() => {
-        setActiveTab('login');
-        setSuccessMsg('');
-        setError('');
-        setPassword('');
-        setConfirmPassword('');
-      }, 2200);
+      setError(err.message || 'Registration failed.');
     }
   };
 

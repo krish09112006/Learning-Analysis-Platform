@@ -89,7 +89,7 @@ export default function TeacherProfileModal({
       setSaving(true);
       setMessage({ text: '', type: '' });
       // Call profile update or password endpoint
-      await fetch('http://localhost/learning-analytics-backend/api/login.php', {
+      await fetch('http://localhost:8000/backend/api/login.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

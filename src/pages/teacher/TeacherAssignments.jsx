@@ -25,7 +25,7 @@ export default function TeacherAssignments({ teacher }) {
     max_file_size: 10485760, max_files: 1, max_attempts: 1,
     allow_resubmission: false, accept_late_submissions: false, late_policy: '',
     grading_method: 'Manual Grading', feedback_required: false, grade_release_mode: 'Release after each evaluation',
-    status: 'Draft'
+    status: 'Draft', reference_file: '', topic_name: ''
   };
 
   const [assnForm, setAssnForm] = useState(defaultForm);

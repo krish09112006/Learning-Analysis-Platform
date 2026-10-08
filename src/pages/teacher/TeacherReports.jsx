@@ -33,10 +33,6 @@ export default function TeacherReports({ teacher }) {
     fetchReport(reportType);
   }, [reportType]);
 
-  const handleDownloadCsv = () => {
-    const url = teacherService.getCsvReportUrl(teacher.user_id, reportType);
-    window.open(url, '_blank');
-  };
 
   const handleDownloadExcel = () => {
     // Generate formatted CSV with BOM for seamless opening in Microsoft Excel
@@ -63,9 +59,29 @@ export default function TeacherReports({ teacher }) {
 
   return (
     <div className="animate-fade-in" style={styles.container}>
-      
+      <style>
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #printable-report, #printable-report * {
+              visibility: visible;
+            }
+            #printable-report {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+            }
+            .print-hide {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
       {/* Top Header */}
-      <div style={styles.headerRow}>
+      <div className="print-hide" style={styles.headerRow}>
         <div>
           <h2 style={styles.pageTitle}>Academic Reports & Data Export</h2>
           <p style={styles.pageSubtitle}>
@@ -74,9 +90,6 @@ export default function TeacherReports({ teacher }) {
         </div>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button onClick={handleDownloadCsv} style={styles.csvExportBtn} title="Download standard CSV">
-            <Download size={15} /> Export CSV
-          </button>
           <button onClick={handleDownloadExcel} style={styles.excelExportBtn} title="Download Excel-compatible CSV">
             <FileText size={15} /> Export Excel
           </button>
@@ -87,7 +100,7 @@ export default function TeacherReports({ teacher }) {
       </div>
 
       {/* Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+      <div className="print-hide" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
         <div className="glass-card" style={{ padding: '14px', borderRadius: '10px' }}>
           <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Report Records</span>
           <h4 style={{ margin: '4px 0 0 0', fontSize: '1.4rem', color: 'var(--text-primary)' }}>
@@ -109,7 +122,7 @@ export default function TeacherReports({ teacher }) {
       </div>
 
       {/* Report Type Selector Tabs */}
-      <div style={styles.tabsRow}>
+      <div className="print-hide" style={styles.tabsRow}>
         <button
           onClick={() => setReportType('course_progress')}
           style={{
@@ -142,7 +155,7 @@ export default function TeacherReports({ teacher }) {
       </div>
 
       {/* Report Table Card */}
-      <div className="glass-card" style={styles.reportCard}>
+      <div id="printable-report" className="glass-card" style={styles.reportCard}>
         <div style={styles.cardHeader}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Table size={18} color="var(--primary)" />

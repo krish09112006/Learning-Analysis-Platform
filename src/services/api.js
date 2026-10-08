@@ -1,4 +1,4 @@
-export const BASE_URL = 'http://localhost/learning-analytics-backend/api/';
+export const BASE_URL = 'http://localhost:8000/api/';
 
 export async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
@@ -63,13 +63,13 @@ export async function request(endpoint, options = {}) {
 export async function checkBackendHealth() {
   const startTime = Date.now();
   try {
-    const res = await fetch(`${BASE_URL}health.php`, { cache: 'no-store' });
+    const res = await fetch(`${BASE_URL}health`, { cache: 'no-store' });
     const responseTime = Date.now() - startTime;
     if (!res.ok) {
       return {
         online: false,
         status: 'error',
-        url: `${BASE_URL}health.php`,
+        url: `${BASE_URL}health`,
         message: `HTTP error ${res.status}`,
         responseTime
       };
@@ -78,14 +78,14 @@ export async function checkBackendHealth() {
     return {
       online: data.status === 'healthy',
       ...data,
-      url: `${BASE_URL}health.php`,
+      url: `${BASE_URL}health`,
       clientResponseTimeMs: responseTime
     };
   } catch (err) {
     return {
       online: false,
       status: 'offline',
-      url: `${BASE_URL}health.php`,
+      url: `${BASE_URL}health`,
       message: err.message || 'Network error: Server unreachable',
       clientResponseTimeMs: Date.now() - startTime
     };

@@ -3,11 +3,11 @@ import { request } from './api';
 export const progressService = {
   async getProgress(studentId, courseId = '') {
     const courseParam = courseId ? `&course_id=${courseId}` : '';
-    return request(`progress.php?student_id=${studentId}${courseParam}`);
+    return request(`progress?student_id=${studentId}${courseParam}`);
   },
 
   async saveProgress(studentId, courseId, topicId, completionStatus, completionPercentage = null, timeSpent = 0) {
-    return request('progress.php', {
+    return request('progress', {
       method: 'POST',
       body: {
         student_id: studentId,

@@ -47,22 +47,28 @@ export function parseTopicsList(rawTopics) {
  */
 function synthesizeCurriculum(params) {
   const {
-    courseName,
-    description,
-    topics: rawTopics,
-    importantPoints = [],
-    difficulty = 'Beginner',
-    duration = '8 Weeks',
-    studyHours = '40 Hours',
-    targetStudents = 'Students and beginners',
-    language = 'English',
-    additionalInstructions = '',
-    quizPreferences = { questionsPerModule: 5, difficulty: 'Easy', questionTypes: ['mcq', 'true_false'] }
+    courseName = params.course_name || 'Untitled Course',
+    description = params.description || '',
+    topics: rawTopics = params.main_topics || params.topics || '',
+    importantPoints = params.important_points || [],
+    difficulty = params.difficulty || 'Beginner',
+    duration = params.duration || '8 Weeks',
+    studyHours = params.studyHours || '40 Hours',
+    targetStudents = params.target_audience || 'Students and beginners',
+    language = params.language || 'English',
+    additionalInstructions = params.additionalInstructions || '',
+    quizPreferences = params.quizPreferences || { questionsPerModule: 5, difficulty: 'Easy', questionTypes: ['mcq', 'true_false'] }
   } = params;
 
-  const topicNames = parseTopicsList(rawTopics);
+  let topicNames = parseTopicsList(rawTopics);
   if (topicNames.length === 0) {
-    throw new Error("At least one topic must be provided.");
+    topicNames = [
+      `Introduction to ${courseName}`,
+      `Core Fundamentals of ${courseName}`,
+      `Practical Applications`,
+      `Advanced Concepts`,
+      `Final Review and Best Practices`
+    ];
   }
 
   // Group topics logically into modules (aim for 2-4 topics per module, min 1 module)
@@ -142,7 +148,7 @@ function synthesizeCurriculum(params) {
         name: tName,
         category: moduleName,
         description: `Comprehensive conceptual overview and applied programming principles for ${tName}, structured for ${difficulty} level learners.`,
-        learningObjectives: [
+        learning_objectives: [
           `Identify the foundational principles and purpose of ${tName}`,
           `Implement valid syntax and practical usage patterns for ${tName}`,
           `Analyze common issues, edge cases, and best practices regarding ${tName}`
@@ -220,7 +226,7 @@ function synthesizeCurriculum(params) {
       title: `Module ${m + 1}: ${moduleName}`,
       module_name: `Module ${m + 1}: ${moduleName}`,
       description: `This module introduces students to essential principles of ${slice.join(', ')}. Designed for ${difficulty.toLowerCase()} learners to build practical competence.`,
-      learningObjectives: moduleObjectives,
+      learning_objectives: moduleObjectives,
       estimatedDuration: `${moduleDurationHours} Hours`,
       topics: moduleTopics,
       quiz: {
@@ -281,7 +287,7 @@ function synthesizeCurriculum(params) {
       targetStudents,
       language,
       status: 'Draft', // Rule 15: Always draft, never automatically published
-      learningObjectives: [
+      learning_objectives: [
         `Explain the foundational theoretical and practical principles of ${courseName}`,
         `Implement working programs and applications applying ${courseName} syntax`,
         `Analyze and debug computational workflows across ${totalTopics} core topics`,
@@ -305,12 +311,12 @@ function synthesizeCurriculum(params) {
 export const courseGeneratorService = {
   /**
    * Generates a complete course draft.
-   * Tries backend generate_course.php first (if PHP backend is active with Gemini/OpenAI API),
+   * Tries backend generate_course first (if PHP backend is active with Gemini/OpenAI API),
    * falls back seamlessly to client-side synthesizer.
    */
   async generateCourse(params) {
     try {
-      const response = await request('generate_course.php', {
+      const response = await request('generate_course', {
         method: 'POST',
         body: params
       });
@@ -318,7 +324,7 @@ export const courseGeneratorService = {
         return response;
       }
     } catch (err) {
-      console.info("Backend generate_course.php unavailable, synthesizing course client-side:", err.message);
+      console.info("Backend generate_course unavailable, synthesizing course client-side:", err.message);
     }
 
     // Client-side synthesis following all 15 rules
@@ -337,7 +343,7 @@ export const courseGeneratorService = {
       name: topicName,
       category: moduleTitle,
       description: `Refined and expanded exploration of ${topicName}, emphasizing ${difficulty.toLowerCase()} architectural comprehension and best practices.`,
-      learningObjectives: [
+      learning_objectives: [
         `${verb} the fundamental role of ${topicName} in real-world application architectures`,
         `${altVerb} robust patterns and syntax models to manipulate ${topicName}`,
         `Evaluate edge cases, defensive coding techniques, and execution efficiency for ${topicName}`
@@ -460,14 +466,15 @@ export const courseGeneratorService = {
       const allTopicTitles = [];
 
       course.modules.forEach((mod, mIdx) => {
-        if (!mod.title || !mod.title.trim()) {
+        const mTitle = mod.title || mod.module_name;
+        if (!mTitle || !mTitle.trim()) {
           errors.push(`Module ${mIdx + 1} is missing a title.`);
         }
         if (!mod.topics || !Array.isArray(mod.topics) || mod.topics.length === 0) {
-          errors.push(`Module '${mod.title || mIdx + 1}' has no topics.`);
+          errors.push(`Module '${mTitle || mIdx + 1}' has no topics.`);
         } else {
           mod.topics.forEach((top, tIdx) => {
-            const tTitle = top.title || top.name;
+            const tTitle = top.title || top.name || top.topic_name;
             if (!tTitle || !tTitle.trim()) {
               errors.push(`Topic ${tIdx + 1} in module '${mod.title}' has an empty title.`);
             } else {

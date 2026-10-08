@@ -6,24 +6,24 @@ export const quizService = {
     if (courseId) params.push(`course_id=${encodeURIComponent(courseId)}`);
     if (topicId) params.push(`topic_id=${encodeURIComponent(topicId)}`);
     const query = params.length > 0 ? `?${params.join('&')}` : '';
-    return request(`quizzes.php${query}`);
+    return request(`quizzes${query}`);
   },
 
   async getQuizById(quizId, studentMode = false) {
     const sm = studentMode ? '&student_mode=1' : '';
-    return request(`quizzes.php?quiz_id=${encodeURIComponent(quizId)}${sm}`);
+    return request(`quizzes?quiz_id=${encodeURIComponent(quizId)}${sm}`);
   },
 
   async getQuizAnalytics(quizId) {
-    return request(`quizzes.php?quiz_id=${encodeURIComponent(quizId)}&analytics=1`);
+    return request(`quizzes?quiz_id=${encodeURIComponent(quizId)}&analytics=1`);
   },
 
   async getQuestions(quizId) {
-    return request(`questions.php?quiz_id=${encodeURIComponent(quizId)}`);
+    return request(`questions?quiz_id=${encodeURIComponent(quizId)}`);
   },
 
   async createQuiz(quizData) {
-    return request('quizzes.php', {
+    return request('quizzes', {
       method: 'POST',
       body: {
         action: 'create',
@@ -33,14 +33,14 @@ export const quizService = {
   },
 
   async updateQuiz(quizData) {
-    return request('quizzes.php', {
+    return request('quizzes', {
       method: 'PUT',
       body: quizData
     });
   },
 
   async publishQuiz(quizId) {
-    return request('quizzes.php', {
+    return request('quizzes', {
       method: 'POST',
       body: {
         action: 'publish',
@@ -50,7 +50,7 @@ export const quizService = {
   },
 
   async duplicateQuiz(quizId) {
-    return request('quizzes.php', {
+    return request('quizzes', {
       method: 'POST',
       body: {
         action: 'duplicate',
@@ -60,13 +60,13 @@ export const quizService = {
   },
 
   async deleteQuiz(quizId) {
-    return request(`quizzes.php?quiz_id=${encodeURIComponent(quizId)}`, {
+    return request(`quizzes?quiz_id=${encodeURIComponent(quizId)}`, {
       method: 'DELETE'
     });
   },
 
   async generateSmartQuizDraft(params) {
-    return request('quizzes.php', {
+    return request('quizzes', {
       method: 'POST',
       body: {
         action: 'generate_draft',
@@ -76,7 +76,7 @@ export const quizService = {
   },
 
   async regenerateQuizQuestion(params) {
-    return request('quizzes.php', {
+    return request('quizzes', {
       method: 'POST',
       body: {
         action: 'regenerate_question',
@@ -94,31 +94,31 @@ export const quizService = {
     if (filters.difficulty && filters.difficulty !== 'All') params.push(`difficulty=${encodeURIComponent(filters.difficulty)}`);
     if (filters.search) params.push(`search=${encodeURIComponent(filters.search)}`);
     const query = params.length > 0 ? `?${params.join('&')}` : '';
-    return request(`question_bank.php${query}`);
+    return request(`question_bank${query}`);
   },
 
   async saveToQuestionBank(questionItem) {
-    return request('question_bank.php', {
+    return request('question_bank', {
       method: 'POST',
       body: questionItem
     });
   },
 
   async updateQuestionBankItem(questionItem) {
-    return request('question_bank.php', {
+    return request('question_bank', {
       method: 'PUT',
       body: questionItem
     });
   },
 
   async deleteQuestionBankItem(id) {
-    return request(`question_bank.php?id=${encodeURIComponent(id)}`, {
+    return request(`question_bank?id=${encodeURIComponent(id)}`, {
       method: 'DELETE'
     });
   },
 
   async copyBankQuestionsToQuiz(quizId, bankIds) {
-    return request('question_bank.php', {
+    return request('question_bank', {
       method: 'POST',
       body: {
         action: 'copy_to_quiz',
@@ -129,7 +129,7 @@ export const quizService = {
   },
 
   async submitQuiz(studentId, quizId, answers, timeTaken = 30) {
-    return request('quiz_results.php', {
+    return request('quiz_results', {
       method: 'POST',
       body: {
         student_id: studentId,
@@ -142,7 +142,7 @@ export const quizService = {
 
   async getQuizResults(studentId, quizId = '') {
     const quizParam = quizId ? `&quiz_id=${quizId}` : '';
-    return request(`quiz_results.php?student_id=${studentId}${quizParam}`);
+    return request(`quiz_results?student_id=${studentId}${quizParam}`);
   }
 };
 

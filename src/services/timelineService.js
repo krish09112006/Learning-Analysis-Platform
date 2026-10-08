@@ -3,13 +3,13 @@ import { request } from './api';
 export const timelineService = {
   // Learning Timeline
   async getTimeline(studentId, courseId = '') {
-    let url = `timeline.php?student_id=${studentId}`;
+    let url = `timeline?student_id=${studentId}`;
     if (courseId) url += `&course_id=${courseId}`;
     return request(url);
   },
 
   async logEvent(studentId, courseId, eventType, eventTitle, eventDescription = '', metadata = null) {
-    return request('timeline.php', {
+    return request('timeline', {
       method: 'POST',
       body: {
         student_id: studentId,
@@ -24,11 +24,11 @@ export const timelineService = {
 
   // Smart Revision Queue
   async getRevisionQueue(studentId) {
-    return request(`revision_queue.php?student_id=${studentId}`);
+    return request(`revision_queue?student_id=${studentId}`);
   },
 
   async markRevisionCompleted(studentId, topicId, courseId) {
-    return request('revision_queue.php', {
+    return request('revision_queue', {
       method: 'POST',
       body: {
         student_id: studentId,
@@ -40,7 +40,7 @@ export const timelineService = {
 
   // Topic Mastery Map
   async getTopicMastery(studentId, courseId) {
-    return request(`topic_mastery.php?student_id=${studentId}&course_id=${courseId}`);
+    return request(`topic_mastery?student_id=${studentId}&course_id=${courseId}`);
   }
 };
 

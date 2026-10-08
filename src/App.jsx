@@ -7,6 +7,10 @@ import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import AuthPage from './pages/AuthPage';
 import CourseSelection from './pages/CourseSelection';
+import StudyPlanner from './pages/StudyPlanner';
+import Notifications from './pages/Notifications';
+import Certificates from './pages/Certificates';
+import Discussions from './pages/Discussions';
 
 // Teacher Module Pages
 import TeacherCourses from './pages/teacher/TeacherCourses';
@@ -65,146 +69,34 @@ export default function App() {
 
   const [dbAnalytics, setDbAnalytics] = useState(null);
   const [syncTrigger, setSyncTrigger] = useState(0);
-
-  const [activePage, setActivePage] = useState(() => {
+  const [selectedCourseId, setSelectedCourseId] = useState(() => {
     const user = localStorage.getItem('lap_current_user');
-    if (user) {
-      try {
-        const parsed = JSON.parse(user);
-        if (parsed.role === 'Teacher') return 'teacher_courses';
-      } catch (e) {}
+    if (!user) return null;
+    try {
+      const parsed = JSON.parse(user);
+      return parsed?.enrolledCourses?.[0] ?? null;
+    } catch (e) {
+      console.error('Failed to parse current user:', e);
+      return null;
     }
-    return 'dashboard';
   });
-  const [selectedTopicId, setSelectedTopicId] = useState(1);
-  const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [selectedTopicId, setSelectedTopicId] = useState(null);
   const [isTeacherProfileOpen, setIsTeacherProfileOpen] = useState(false);
+  const [themeMode, setThemeMode] = useState('light');
 
-  // Theme Mode State & Synchronization
-  const [themeMode, setThemeMode] = useState(() => localStorage.getItem('lap_theme_mode') || 'dark');
+  const [activePage, setActivePage] = useState('dashboard');
 
   useEffect(() => {
-    document.body.className = themeMode === 'light' ? 'light-theme' : 'dark-theme';
-    localStorage.setItem('lap_theme_mode', themeMode);
-  }, [themeMode]);
+    if (!currentUser) {
+      setActivePage('dashboard');
+      return;
+    }
+    setActivePage(currentUser.role === 'Teacher' ? 'teacher_courses' : 'dashboard');
+  }, [currentUser]);
 
   const toggleTheme = () => {
-    setThemeMode(prev => prev === 'dark' ? 'light' : 'dark');
+    setThemeMode(prev => (prev === 'light' ? 'dark' : 'light'));
   };
-
-  // Load database syllabus, progress, and analytics dynamically for students
-  useEffect(() => {
-    if (!currentUser || currentUser.role === 'Teacher') return;
-
-    const loadData = async () => {
-      const studentId = currentUser.user_id;
-      const courseId = selectedCourseId || 'py-101';
-
-      // 0. Check if course exists in local platform courses list
-      const localCourses = JSON.parse(localStorage.getItem('lap_courses_list') || '[]');
-      const foundLocal = localCourses.find(c => c.course_id === courseId);
-
-      if (foundLocal) {
-        setCourseState({
-          id: foundLocal.course_id,
-          title: foundLocal.course_name,
-          instructor: foundLocal.instructor_name || 'Faculty Member',
-          topics: foundLocal.topics || [],
-          quizzes: foundLocal.quizzes || [],
-          modules: foundLocal.modules || []
-        });
-
-        if (foundLocal.topics && foundLocal.topics.length > 0) {
-          setSelectedTopicId(foundLocal.topics[0].id);
-        }
-
-        const loadedState = getStudentStateForUser(currentUser);
-        setStudentState(loadedState);
-        setDbAnalytics(null);
-        return;
-      }
-
-      try {
-        // 1. Fetch course details & syllabus topics
-        const topics = await courseService.getCourseTopics(courseId);
-        const quizzes = await quizService.getQuizzes(courseId);
-        
-        // Load questions for each quiz
-        for (let q of quizzes) {
-          try {
-            q.questions = await quizService.getQuestions(q.id);
-          } catch (err) {
-            q.questions = [];
-          }
-        }
-
-        // Update Course state
-        setCourseState({
-          id: courseId,
-          title: courseId === 'py-101' ? 'Python Programming' : 'Academic Course',
-          instructor: 'Dr. Alok Verma',
-          topics: topics,
-          quizzes: quizzes
-        });
-
-        // 2. Fetch Progress (completed topics list)
-        const progress = await progressService.getProgress(studentId, courseId);
-
-        // 3. Fetch Quiz Results
-        const results = await quizService.getQuizResults(studentId, courseId);
-
-        // 4. Fetch Analytics Aggregations
-        const analyticsData = await analyticsService.getAnalytics(studentId, courseId);
-        setDbAnalytics(analyticsData);
-
-        // Synchronize studentState
-        // Construct studySessions grid (using today's weekday to map hours)
-        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const currentDay = daysOfWeek[new Date().getDay()];
-        const studySessions = [
-          { date: "Mon", hours: 0 },
-          { date: "Tue", hours: 0 },
-          { date: "Wed", hours: 0 },
-          { date: "Thu", hours: 0 },
-          { date: "Fri", hours: 0 },
-          { date: "Sat", hours: 0 },
-          { date: "Sun", hours: 0 }
-        ];
-
-        // Map weekly time average or total hours to the studySessions chart
-        if (analyticsData && analyticsData.totalStudyHours) {
-          const currentDayObj = studySessions.find(s => s.date === currentDay);
-          if (currentDayObj) {
-            currentDayObj.hours = analyticsData.totalStudyHours;
-          }
-        }
-
-        setStudentState({
-          profile: {
-            name: currentUser.name,
-            email: currentUser.email,
-            avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120"
-          },
-          completedTopics: progress.completedTopics || [],
-          quizAttempts: results || [],
-          assignmentSubmissions: [],
-          studySessions,
-          totalStudySeconds: progress.totalStudySeconds || 0
-        });
-
-      } catch (e) {
-        console.warn("PHP Backend offline or unavailable, falling back to local mock data:", e);
-        
-        // LOAD LOCAL FALLBACK DATA
-        const loadedState = getStudentStateForUser(currentUser);
-        setStudentState(loadedState);
-        setCourseState(INITIAL_COURSE);
-        setDbAnalytics(null); // Fallback to calculate performance from local state
-      }
-    };
-
-    loadData();
-  }, [currentUser, syncTrigger, selectedCourseId]);
 
   // 2. Syllabus state (hoisted to allow dynamic module creation)
   const [courseState, setCourseState] = useState(() => {
@@ -524,10 +416,8 @@ export default function App() {
     let newTopic = null;
     
     if (templateTopicId) {
-      // Find template
-      const template = PYTHON_TOPICS_TEMPLATES.find(t => t.id === Number(templateTopicId));
+      const template = courseState.topics.find(t => t.id === Number(templateTopicId));
       if (template) {
-        // Verify duplicates
         const alreadyExists = courseState.topics.some(t => t.name === template.name);
         if (alreadyExists) {
           alert(`Topic "${template.name}" is already in the syllabus.`);
@@ -537,6 +427,9 @@ export default function App() {
           ...template,
           id: courseState.topics.length + 1
         };
+      } else {
+        alert('Selected topic template is not available in the current syllabus. Please create a custom topic instead.');
+        return;
       }
     } else {
       // Custom topic creation
